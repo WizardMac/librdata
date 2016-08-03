@@ -14,6 +14,8 @@ Features:
 Example usage:
 
 ```{C}
+#include "rdata.h"
+
 static int handle_table(const char *name, void *ctx) {
     printf("Read table: %s\n", name);
 }
@@ -44,11 +46,15 @@ rdata_set_value_label_handler(parser, &handle_value_label);
 rdata_parse(parser, "/path/to/something.rdata", NULL);
 ```
 
+See `rdata.h` for the full API.
+
 ## Write API
 
 Example usage:
 
 ```{C}
+#include "rdata.h"
+
 static ssize_t write_data(const void *bytes, size_t len, void *ctx) {
     int fd = *(int *)ctx;
     return write(fd, bytes, len);
@@ -82,3 +88,5 @@ rdata_end_file(writer);
 close(fd);
 
 ```
+
+See `rdata.h` for the full API.
