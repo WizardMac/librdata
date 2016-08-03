@@ -14,20 +14,32 @@ Features:
 Example usage:
 
 ```{C}
-
 static int handle_table(const char *name, void *ctx) {
     printf("Read table: %s\n", name);
 }
 
+// Called once for all columns. "data" is NULL for text columns.
 static int handle_column(const char *name, rdata_type_t type,
                          void *data, long count, void *ctx) {
-    // Do something...
+    /* Do something... */
+}
+
+// Called once per row for a text column
+static int handle_text_value(const char *value, int index, void *ctx) {
+    /* Do something... */
+}
+
+// Called for factor variables, once for each level
+static int handle_value_label(const char *value, int index, void *ctx) {
+    /* Do something... */
 }
 
 rdata_parser_t *parser = rdata_parser_init();
 
 rdata_set_table_handler(parser, &handle_table);
 rdata_set_column_handler(parser, &handle_column);
+rdata_set_text_value_handler(parser, &handle_text_value);
+rdata_set_value_label_handler(parser, &handle_value_label);
 
 rdata_parse(parser, "/path/to/something.rdata", NULL);
 ```
