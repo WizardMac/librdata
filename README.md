@@ -1,6 +1,6 @@
 # librdata - Read and write R data frames from C
 
-Originally part of [ReadStat](https://github.com/WizardMac/librdata), librdata
+Originally part of [ReadStat](https://github.com/WizardMac/ReadStat), librdata
 is a small C library for reading and writing R data frames.
 
 Features:
