@@ -56,7 +56,7 @@ rdata_error_t rdata_column_set_label(rdata_column_t *column, const char *label) 
 }
 
 rdata_error_t rdata_column_add_factor(rdata_column_t *column, const char *factor) {
-    if (column->type != RDATA_TYPE_FACTOR)
+    if (column->type != RDATA_TYPE_INT32)
         return RDATA_ERROR_FACTOR;
 
     column->factor_count++;
@@ -349,14 +349,15 @@ static rdata_error_t rdata_end_string_column(rdata_writer_t *writer, rdata_colum
 rdata_error_t rdata_begin_column(rdata_writer_t *writer, rdata_column_t *column) {
     rdata_type_t type = column->type;
 
-    if (type == RDATA_TYPE_FACTOR)
-        return rdata_begin_factor_column(writer, column);
+    if (type == RDATA_TYPE_INT32) {
+        if (column->factor_count)
+            return rdata_begin_factor_column(writer, column);
+        return rdata_begin_integer_column(writer, column);
+    }
     if (type == RDATA_TYPE_REAL)
         return rdata_begin_real_column(writer, column);
     if (type == RDATA_TYPE_TIMESTAMP)
         return rdata_begin_timestamp_column(writer, column);
-    if (type == RDATA_TYPE_INT32)
-        return rdata_begin_integer_column(writer, column);
     if (type == RDATA_TYPE_LOGICAL)
         return rdata_begin_logical_column(writer, column);
     if (type == RDATA_TYPE_STRING)
@@ -393,14 +394,15 @@ rdata_error_t rdata_append_string_value(rdata_writer_t *writer, const char *valu
 rdata_error_t rdata_end_column(rdata_writer_t *writer, rdata_column_t *column) {
     rdata_type_t type = column->type;
 
-    if (type == RDATA_TYPE_FACTOR)
-        return rdata_end_factor_column(writer, column);
+    if (type == RDATA_TYPE_INT32) {
+        if (column->factor_count)
+            return rdata_end_factor_column(writer, column);
+        return rdata_end_integer_column(writer, column);
+    }
     if (type == RDATA_TYPE_REAL)
         return rdata_end_real_column(writer, column);
     if (type == RDATA_TYPE_TIMESTAMP)
         return rdata_end_timestamp_column(writer, column);
-    if (type == RDATA_TYPE_INT32)
-        return rdata_end_integer_column(writer, column);
     if (type == RDATA_TYPE_LOGICAL)
         return rdata_end_logical_column(writer, column);
     if (type == RDATA_TYPE_STRING)

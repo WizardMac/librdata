@@ -8,8 +8,7 @@ typedef enum rdata_type_e {
     RDATA_TYPE_INT32,
     RDATA_TYPE_REAL,
     RDATA_TYPE_LOGICAL,
-    RDATA_TYPE_TIMESTAMP,
-    RDATA_TYPE_FACTOR
+    RDATA_TYPE_TIMESTAMP
 } rdata_type_t;
 
 typedef enum rdata_error_e {
