@@ -437,7 +437,7 @@ static rdata_error_t read_toplevel_object(const char *table_name, const char *ke
             goto cleanup;
 
         if (ctx->column_handler) {
-            if (ctx->column_handler(key, RDATA_TYPE_STRING, NULL, NULL, length, ctx->user_ctx)) {
+            if (ctx->column_handler(key, RDATA_TYPE_STRING, NULL, length, ctx->user_ctx)) {
                 retval = RDATA_ERROR_USER_ABORT;
                 goto cleanup;
             }
@@ -698,7 +698,7 @@ static rdata_error_t read_generic_list(int attributes, rdata_ctx_t *ctx) {
             if ((retval = read_length(&vec_length, ctx)) != RDATA_OK)
                 goto cleanup;
             if (ctx->column_handler) {
-                if (ctx->column_handler(NULL, RDATA_TYPE_STRING, NULL, NULL, vec_length, ctx->user_ctx)) {
+                if (ctx->column_handler(NULL, RDATA_TYPE_STRING, NULL, vec_length, ctx->user_ctx)) {
                     retval = RDATA_ERROR_USER_ABORT;
                     goto cleanup;
                 }
@@ -811,11 +811,11 @@ static rdata_error_t read_value_vector(rdata_sexptype_header_t header, const cha
             break;
         case RDATA_SEXPTYPE_INTEGER_VECTOR:
             input_elem_size = sizeof(int32_t);
-            output_data_type = RDATA_TYPE_REAL;
+            output_data_type = RDATA_TYPE_INT32;
             break;
         case RDATA_SEXPTYPE_LOGICAL_VECTOR:
             input_elem_size = sizeof(int32_t);
-            output_data_type = RDATA_TYPE_REAL;
+            output_data_type = RDATA_TYPE_LOGICAL;
             break;
         default:
             retval = RDATA_ERROR_PARSE;
@@ -859,29 +859,13 @@ static rdata_error_t read_value_vector(rdata_sexptype_header_t header, const cha
         if ((retval = read_attributes(&handle_vector_attribute, ctx)) != RDATA_OK)
             goto cleanup;
     }
+    if (ctx->class_is_posixct)
+        output_data_type = RDATA_TYPE_TIMESTAMP;
     
     if (ctx->column_handler) {
-        if (header.type == RDATA_SEXPTYPE_LOGICAL_VECTOR ||
-                header.type == RDATA_SEXPTYPE_INTEGER_VECTOR) {
-            double *real_vals = malloc(length * sizeof(double));
-            int32_t *i_vals = (int32_t *)vals;
-            for (i=0; i<length; i++) {
-                if (i_vals[i] == INT32_MIN) {
-                    real_vals[i] = NAN;
-                } else {
-                    real_vals[i] = i_vals[i];
-                }
-            }
-            if (ctx->column_handler(name, output_data_type, NULL, real_vals, length, ctx->user_ctx)) {
-                retval = RDATA_ERROR_USER_ABORT;
-                goto cleanup;
-            }
-            free(real_vals);
-        } else {
-            if (ctx->column_handler(name, output_data_type, ctx->class_is_posixct ? "%ts" : NULL, vals, length, ctx->user_ctx)) {
-                retval = RDATA_ERROR_USER_ABORT;
-                goto cleanup;
-            }
+        if (ctx->column_handler(name, output_data_type, vals, length, ctx->user_ctx)) {
+            retval = RDATA_ERROR_USER_ABORT;
+            goto cleanup;
         }
     }
 

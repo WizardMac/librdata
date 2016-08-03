@@ -25,7 +25,7 @@ typedef enum rdata_error_e {
 
 const char *rdata_error_message(rdata_error_t error_code);
 
-typedef int (*rdata_column_handler)(const char *name, rdata_type_t type, char *format, 
+typedef int (*rdata_column_handler)(const char *name, rdata_type_t type,
         void *data, long count, void *ctx);
 typedef int (*rdata_table_handler)(const char *name, void *ctx);
 typedef int (*rdata_text_value_handler)(const char *value, int index, void *ctx);
