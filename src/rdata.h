@@ -1,4 +1,8 @@
 
+#include <stdint.h>
+#include <sys/types.h>
+#include <stdio.h>
+
 typedef enum rdata_type_e {
     RDATA_TYPE_STRING,
     RDATA_TYPE_DOUBLE
