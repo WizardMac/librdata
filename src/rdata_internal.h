@@ -1,8 +1,7 @@
 //
-//  readstat_rdata.h
+//  rdata_internal.h
 //
 
-#include "rdata.h"
 #include "rdata_bits.h"
 
 #pragma pack(push, 1)

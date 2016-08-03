@@ -5,7 +5,11 @@
 
 typedef enum rdata_type_e {
     RDATA_TYPE_STRING,
-    RDATA_TYPE_DOUBLE
+    RDATA_TYPE_INT32,
+    RDATA_TYPE_REAL,
+    RDATA_TYPE_LOGICAL,
+    RDATA_TYPE_TIMESTAMP,
+    RDATA_TYPE_FACTOR
 } rdata_type_t;
 
 typedef enum rdata_error_e {
@@ -15,8 +19,12 @@ typedef enum rdata_error_e {
     RDATA_ERROR_READ,
     RDATA_ERROR_MALLOC,
     RDATA_ERROR_USER_ABORT,
-    RDATA_ERROR_PARSE
+    RDATA_ERROR_PARSE,
+    RDATA_ERROR_WRITE,
+    RDATA_ERROR_FACTOR
 } rdata_error_t;
+
+const char *rdata_error_message(rdata_error_t error_code);
 
 typedef int (*rdata_column_handler)(const char *name, rdata_type_t type, char *format, 
         void *data, long count, void *ctx);
@@ -85,3 +93,57 @@ rdata_error_t rdata_set_io_ctx(rdata_parser_t *parser, void *io_ctx);
  * per data frame in RData files, and zero times on RDS files. */
 rdata_error_t rdata_parse(rdata_parser_t *parser, const char *filename, void *user_ctx);
 
+
+// Write API
+typedef ssize_t (*rdata_data_writer)(const void *data, size_t len, void *ctx);
+
+typedef struct rdata_column_s {
+    rdata_type_t    type;
+    int             index;
+    char            name[256];
+    char            label[1024];
+
+    int32_t         factor_count;
+    const char    **factor;
+} rdata_column_t;
+
+typedef struct rdata_writer_s {
+    rdata_data_writer   data_writer;
+    size_t              bytes_written;
+
+    rdata_error_handler error_handler;
+    void               *user_ctx;
+
+    void               *atom_table;
+    int                 bswap;
+
+    rdata_column_t    **columns;
+    int32_t             columns_count;
+    int32_t             columns_capacity;
+
+    int32_t             row_count;
+} rdata_writer_t;
+
+rdata_writer_t *rdata_writer_init(rdata_data_writer write_callback);
+void rdata_writer_free(rdata_writer_t *writer);
+
+rdata_column_t *rdata_add_column(rdata_writer_t *writer, const char *name, rdata_type_t type);
+
+rdata_error_t rdata_column_set_label(rdata_column_t *column, const char *label);
+rdata_error_t rdata_column_add_factor(rdata_column_t *column, const char *factor);
+
+rdata_column_t *rdata_get_column(rdata_writer_t *writer, int32_t j);
+
+rdata_error_t rdata_begin_file(rdata_writer_t *writer, void *ctx);
+rdata_error_t rdata_begin_table(rdata_writer_t *writer, const char *variable_name, int32_t row_count);
+rdata_error_t rdata_begin_column(rdata_writer_t *writer, rdata_column_t *column);
+
+rdata_error_t rdata_append_real_value(rdata_writer_t *writer, double value);
+rdata_error_t rdata_append_int32_value(rdata_writer_t *writer, int32_t value);
+rdata_error_t rdata_append_timestamp_value(rdata_writer_t *writer, time_t value);
+rdata_error_t rdata_append_logical_value(rdata_writer_t *writer, int value);
+rdata_error_t rdata_append_string_value(rdata_writer_t *writer, const char *value);
+
+rdata_error_t rdata_end_column(rdata_writer_t *writer, rdata_column_t *column);
+rdata_error_t rdata_end_table(rdata_writer_t *writer, const char *datalabel);
+rdata_error_t rdata_end_file(rdata_writer_t *writer);

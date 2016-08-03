@@ -14,6 +14,7 @@
 #include <lzma.h>
 #endif
 
+#include "rdata.h"
 #include "rdata_internal.h"
 
 #define RDATA_ATOM_LEN 128
@@ -806,15 +807,15 @@ static rdata_error_t read_value_vector(rdata_sexptype_header_t header, const cha
     switch (header.type) {
         case RDATA_SEXPTYPE_REAL_VECTOR:
             input_elem_size = sizeof(double);
-            output_data_type = RDATA_TYPE_DOUBLE;
+            output_data_type = RDATA_TYPE_REAL;
             break;
         case RDATA_SEXPTYPE_INTEGER_VECTOR:
             input_elem_size = sizeof(int32_t);
-            output_data_type = RDATA_TYPE_DOUBLE;
+            output_data_type = RDATA_TYPE_REAL;
             break;
         case RDATA_SEXPTYPE_LOGICAL_VECTOR:
             input_elem_size = sizeof(int32_t);
-            output_data_type = RDATA_TYPE_DOUBLE;
+            output_data_type = RDATA_TYPE_REAL;
             break;
         default:
             retval = RDATA_ERROR_PARSE;
