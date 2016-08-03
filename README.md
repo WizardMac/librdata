@@ -71,9 +71,9 @@ rdata_append_real_value(writer, NAN);
 rdata_end_column(writer, col1);
 
 rdata_begin_column(writer, col2);
-rdata_append_real_value(writer, "hello");
-rdata_append_real_value(writer, "goodbye");
-rdata_append_real_value(writer, NULL);
+rdata_append_string_value(writer, "hello");
+rdata_append_string_value(writer, "goodbye");
+rdata_append_string_value(writer, NULL);
 rdata_end_column(writer, col2);
 
 rdata_end_table(writer, "My data set");
