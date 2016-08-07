@@ -11,17 +11,32 @@
 #define R_OBJECT        0x02
 #define R_ATTRIBUTES    0x04
 
+#define INITIAL_COLUMNS_CAPACITY    100
+
 rdata_writer_t *rdata_writer_init(rdata_data_writer write_callback) {
     rdata_writer_t *writer = calloc(1, sizeof(rdata_writer_t));
     writer->bswap = machine_is_little_endian();
     writer->atom_table = ck_hash_table_init(100);
     writer->data_writer = write_callback;
 
+    writer->columns_capacity = INITIAL_COLUMNS_CAPACITY;
+    writer->columns = malloc(writer->columns_capacity * sizeof(rdata_column_t *));
+
     return writer;
 }
 
 void rdata_writer_free(rdata_writer_t *writer) {
     ck_hash_table_free(writer->atom_table);
+    int i, j;
+    for (i=0; i<writer->columns_count; i++) {
+        rdata_column_t *column = writer->columns[i];
+        for (j=0; j<column->factor_count; j++) {
+            free(column->factor[j]);
+        }
+        free(column->factor);
+        free(column);
+    }
+    free(writer->columns);
     free(writer);
 }
 
@@ -61,7 +76,7 @@ rdata_error_t rdata_column_add_factor(rdata_column_t *column, const char *factor
 
     column->factor_count++;
     column->factor = realloc(column->factor, sizeof(const char *) * column->factor_count);
-    column->factor[column->factor_count-1] = factor;
+    column->factor[column->factor_count-1] = strdup(factor);
 
     return RDATA_OK;
 }

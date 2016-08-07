@@ -103,7 +103,7 @@ typedef struct rdata_column_s {
     char            label[1024];
 
     int32_t         factor_count;
-    const char    **factor;
+    char          **factor;
 } rdata_column_t;
 
 typedef struct rdata_writer_s {
