@@ -168,6 +168,10 @@ static ssize_t read_st_lzma(rdata_ctx_t *ctx, void *buffer, size_t len) {
 
 static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
     ssize_t bytes_read = 0;
+
+    if (len == 0)
+        return 0;
+
 #ifdef HAVE_LZMA
     if (ctx->lzma_strm) {
         bytes_read = read_st_lzma(ctx, buffer, len);
