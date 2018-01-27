@@ -765,15 +765,16 @@ static rdata_error_t read_string_vector_n(int attributes, int32_t length,
             buffer_size = string_length + 1;
         }
         
-        if (read_st(ctx, buffer, string_length) != string_length) {
-            retval = RDATA_ERROR_READ;
-            goto cleanup;
+        if (string_length >= 0) {
+            if (read_st(ctx, buffer, string_length) != string_length) {
+                retval = RDATA_ERROR_READ;
+                goto cleanup;
+            }
+            buffer[string_length] = '\0';
         }
-        
-        buffer[string_length] = '\0';
-        
+
         if (text_value_handler) {
-            if (text_value_handler(buffer, i, callback_ctx)) {
+            if (text_value_handler(string_length >= 0 ? buffer : NULL, i, callback_ctx)) {
                 retval = RDATA_ERROR_USER_ABORT;
                 goto cleanup;
             }
