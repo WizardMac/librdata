@@ -695,7 +695,8 @@ static rdata_error_t read_generic_list(int attributes, rdata_ctx_t *ctx) {
                     goto cleanup;
                 }
             }
-            retval = read_string_vector_n(attributes, vec_length, ctx->text_value_handler, ctx->user_ctx, ctx);
+            retval = read_string_vector_n(sexptype_info.header.attributes, vec_length,
+                    ctx->text_value_handler, ctx->user_ctx, ctx);
         } else {
             retval = read_value_vector(sexptype_info.header, NULL, ctx);
         }
