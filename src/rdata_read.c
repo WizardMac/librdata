@@ -347,9 +347,15 @@ rdata_ctx_t *rdata_ctx_init(rdata_io_t *io, const char *filename) {
 }
 
 void free_rdata_ctx(rdata_ctx_t *ctx) {
-    if (ctx->io)
+    if (ctx->io) {
         ctx->io->close(ctx->io->io_ctx);
-    free(ctx->atom_table);
+    }
+    if (ctx->atom_table) {
+        if (ctx->atom_table->data) {
+            free(ctx->atom_table->data);
+        }
+        free(ctx->atom_table);
+    }
 #ifdef HAVE_LZMA
     if (ctx->lzma_strm) {
         lzma_end(ctx->lzma_strm);
