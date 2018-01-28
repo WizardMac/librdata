@@ -218,10 +218,15 @@ static int lseek_st(rdata_ctx_t *ctx, size_t len) {
 #endif
             ) {
         int retval = 0;
-        char *buf = malloc(len);
-        if (read_st(ctx, buf, len) != len)
+        char *buf = rdata_malloc(len);
+        if (buf == NULL) {
             retval = -1;
-        free(buf);
+        } else if (read_st(ctx, buf, len) != len) {
+            retval = -1;
+        }
+        if (buf)
+            free(buf);
+
         return retval;
     }
 
