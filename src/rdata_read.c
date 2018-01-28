@@ -20,6 +20,7 @@
 #define RDATA_ATOM_LEN 128
 
 #define STREAM_BUFFER_SIZE   65536
+#define MAX_BUFFER_SIZE    (1<<24)
 
 typedef struct rdata_atom_table_s {
     int   count;
@@ -65,6 +66,20 @@ static rdata_error_t read_attributes(int (*handle_attribute)(char *key, rdata_se
                            rdata_ctx_t *ctx);
 static rdata_error_t recursive_discard(rdata_sexptype_header_t sexptype_header, rdata_ctx_t *ctx);
 
+static void *rdata_malloc(size_t len) {
+    if (len > MAX_BUFFER_SIZE || len == 0)
+        return NULL;
+
+    return malloc(len);
+}
+
+static void *rdata_realloc(void *buf, size_t len) {
+    if (len > MAX_BUFFER_SIZE || len == 0)
+        return NULL;
+
+    return realloc(buf, len);
+}
+
 static int atom_table_add(rdata_atom_table_t *table, char *key) {
     table->data = realloc(table->data, RDATA_ATOM_LEN * (table->count + 1));
     memcpy(&table->data[RDATA_ATOM_LEN*table->count], key, strlen(key) + 1);
@@ -73,6 +88,9 @@ static int atom_table_add(rdata_atom_table_t *table, char *key) {
 }
 
 static char *atom_table_lookup(rdata_atom_table_t *table, int index) {
+    if (index <= 0 || index > table->count) {
+        return NULL;
+    }
     return &table->data[(index-1)*RDATA_ATOM_LEN];
 }
 
@@ -479,6 +497,7 @@ cleanup:
 
 static rdata_error_t read_environment(const char *table_name, rdata_ctx_t *ctx) {
     rdata_error_t retval = RDATA_OK;
+    char *key = NULL;
     
     while (1) {
         rdata_sexptype_info_t sexptype_info;
@@ -495,7 +514,10 @@ static rdata_error_t read_environment(const char *table_name, rdata_ctx_t *ctx) 
             continue;
         }
         
-        char *key = atom_table_lookup(ctx->atom_table, sexptype_info.ref);
+        if ((key = atom_table_lookup(ctx->atom_table, sexptype_info.ref)) == NULL) {
+            retval = RDATA_ERROR_PARSE;
+            goto cleanup;
+        }
         
         if ((retval = read_toplevel_object(table_name, key, ctx)) != RDATA_OK)
             goto cleanup;
@@ -641,6 +663,7 @@ static rdata_error_t read_attributes(int (*handle_attribute)(char *key, rdata_se
                            rdata_ctx_t *ctx) {
     rdata_sexptype_info_t pairlist_info, val_info;
     rdata_error_t retval = RDATA_OK;
+    char *key = NULL;
     
     retval = read_sexptype_header(&pairlist_info, ctx);
     if (retval != RDATA_OK)
@@ -652,7 +675,10 @@ static rdata_error_t read_attributes(int (*handle_attribute)(char *key, rdata_se
             goto cleanup;
         
         if (handle_attribute) {
-            char *key = atom_table_lookup(ctx->atom_table, pairlist_info.ref);
+            if ((key = atom_table_lookup(ctx->atom_table, pairlist_info.ref)) == NULL) {
+                retval = RDATA_ERROR_PARSE;
+                goto cleanup;
+            }
             if ((retval = handle_attribute(key, val_info, ctx)) != RDATA_OK)
                 goto cleanup;
         } else {
@@ -666,7 +692,6 @@ static rdata_error_t read_attributes(int (*handle_attribute)(char *key, rdata_se
     }
 
 cleanup:
-    
     return retval;
 }
 
@@ -743,7 +768,7 @@ static rdata_error_t read_string_vector_n(int attributes, int32_t length,
     char *buffer = NULL;
     int i;
 
-    buffer = malloc(buffer_size);
+    buffer = rdata_malloc(buffer_size);
     
     for (i=0; i<length; i++) {
         if ((retval = read_sexptype_header(&info, ctx)) != RDATA_OK)
@@ -758,12 +783,12 @@ static rdata_error_t read_string_vector_n(int attributes, int32_t length,
             goto cleanup;
         
         if (string_length + 1 > buffer_size) {
-            buffer = realloc(buffer, string_length + 1);
+            buffer_size = string_length + 1;
+            buffer = rdata_realloc(buffer, buffer_size);
             if (buffer == NULL) {
                 retval = RDATA_ERROR_MALLOC;
                 goto cleanup;
             }
-            buffer_size = string_length + 1;
         }
         
         if (string_length >= 0) {
@@ -840,7 +865,7 @@ static rdata_error_t read_value_vector(rdata_sexptype_header_t header, const cha
 
     buf_len = length * input_elem_size;
     
-    vals = malloc(buf_len);
+    vals = rdata_malloc(buf_len);
     if (vals == NULL) {
         retval = RDATA_ERROR_MALLOC;
         goto cleanup;
