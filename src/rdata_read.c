@@ -599,7 +599,7 @@ cleanup:
 
 static int handle_class_name(const char *buf, int i, void *ctx) {
     int *class_is_posixct = (int *)ctx;
-    *class_is_posixct |= (strcmp(buf, "POSIXct") == 0);
+    *class_is_posixct |= (buf != NULL && strcmp(buf, "POSIXct") == 0);
     return RDATA_OK;
 }
 
