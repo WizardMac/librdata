@@ -911,7 +911,9 @@ static rdata_error_t read_value_vector(rdata_sexptype_header_t header, const cha
     }
 
 cleanup:
-    
+    if (vals)
+        free(vals);
+
     return retval;
 }
 
