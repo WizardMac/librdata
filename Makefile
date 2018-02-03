@@ -1,5 +1,7 @@
-## Set this to 1 if you have libfuzz support
+## Set this to 1 if you have libFuzzer support
 HAVE_FUZZER=0
+## Set to 1 if you have liblzma (used for reading compressed files)
+HAVE_LZMA=0
 
 ## detect operating system
 ifeq ($(OS), Windows_NT)
@@ -13,13 +15,20 @@ ifeq ($(UNAME), Darwin)
 	MIN_OSX=10.10
 	DYLIB=librdata.dylib
 	PREFIX=/usr/local
-	LIBS=-L/usr/local/lib -llzma -lz -mmacosx-version-min=$(MIN_OSX)
-	CFLAGS=-DHAVE_LZMA=1 -Wall -Werror -dynamiclib
+
+	CFLAGS=-DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -dynamiclib -mmacosx-version-min=$(MIN_OSX)
+	BASE_LIBS=-L/usr/local/lib -lz
 endif
 
 ifeq ($(UNAME), Linux)
-	CFLAGS=-DHAVE_LZMA=1 -Wall -Werror -I/usr/local/include -Isrc/
-	LIBS=-L/usr/local/lib -llzma -lz
+	CFLAGS=-DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -I/usr/local/include -Isrc/
+	BASE_LIBS=-L/usr/local/lib -lz
+endif
+
+ifeq ($(HAVE_LZMA), 1)
+	LIBS=$(BASE_LIBS) -llzma
+else
+	LIBS=$(BASE_LIBS)
 endif
 
 .PHONY: 	test
@@ -37,7 +46,7 @@ ifeq ($(UNAME), Darwin)
 	@mkdir -p obj
 	$(CC) $(CFLAGS) -Os src/*.c -o obj/$(DYLIB) $(LIBS) 
 endif
-ifeq ($(HAVE_FUZZER), "1")
+ifeq ($(HAVE_FUZZER), 1)
 	$(CC) -DHAVE_LZMA=1 -g src/*.c src/fuzz/fuzz_rdata.c -o obj/fuzz_rdata \
 		-lstdc++ -lFuzzer $(LIBS) \
 		-fsanitize=address -fsanitize-coverage=trace-pc-guard,trace-cmp \
@@ -54,3 +63,5 @@ uninstall:
 
 clean:
 	rm -rf obj
+	rm readEx
+	rm writeEx

@@ -10,7 +10,7 @@
 #include <math.h>
 #include <zlib.h>
 
-#ifdef HAVE_LZMA
+#if HAVE_LZMA
 #include <lzma.h>
 #endif
 
@@ -36,7 +36,7 @@ typedef struct rdata_ctx_s {
     rdata_text_value_handler     value_label_handler;
     rdata_error_handler       error_handler;
     void                        *user_ctx;
-#ifdef HAVE_LZMA
+#if HAVE_LZMA
     lzma_stream                 *lzma_strm;
 #endif
     z_stream                    *z_strm;
@@ -139,7 +139,7 @@ static ssize_t read_st_z(rdata_ctx_t *ctx, void *buffer, size_t len) {
     return bytes_written;
 }
 
-#ifdef HAVE_LZMA
+#if HAVE_LZMA
 static ssize_t read_st_lzma(rdata_ctx_t *ctx, void *buffer, size_t len) {
     ssize_t bytes_written = 0;
     int error = 0;
@@ -192,7 +192,7 @@ static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
     if (len == 0)
         return 0;
 
-#ifdef HAVE_LZMA
+#if HAVE_LZMA
     if (ctx->lzma_strm) {
         bytes_read = read_st_lzma(ctx, buffer, len);
     } else
@@ -213,7 +213,7 @@ static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
 
 static int lseek_st(rdata_ctx_t *ctx, size_t len) {
     if (ctx->z_strm
-#ifdef HAVE_LZMA
+#if HAVE_LZMA
             || ctx->lzma_strm
 #endif
             ) {
@@ -254,7 +254,7 @@ cleanup:
     return retval;
 }
 
-#ifdef HAVE_LZMA
+#if HAVE_LZMA
 static rdata_error_t init_lzma_stream(rdata_ctx_t *ctx) {
     rdata_error_t retval = RDATA_OK;
     ctx->lzma_strm = calloc(1, sizeof(lzma_stream));
@@ -293,7 +293,7 @@ static rdata_error_t init_stream(rdata_ctx_t *ctx) {
     if (header[0] == '\x1f' && header[1] == '\x8b') {
         return init_z_stream(ctx);
     }
-#ifdef HAVE_LZMA
+#if HAVE_LZMA
     if (strncmp("\xFD" "7zXZ", header, sizeof(header)) == 0) {
         return init_lzma_stream(ctx);
     }
@@ -309,7 +309,7 @@ static rdata_error_t reset_stream(rdata_ctx_t *ctx) {
         free(ctx->z_strm);
         ctx->z_strm = NULL;
     }
-#ifdef HAVE_LZMA
+#if HAVE_LZMA
     if (ctx->lzma_strm) {
         lzma_end(ctx->lzma_strm);
         free(ctx->lzma_strm);
@@ -356,7 +356,7 @@ void free_rdata_ctx(rdata_ctx_t *ctx) {
         }
         free(ctx->atom_table);
     }
-#ifdef HAVE_LZMA
+#if HAVE_LZMA
     if (ctx->lzma_strm) {
         lzma_end(ctx->lzma_strm);
         free(ctx->lzma_strm);
