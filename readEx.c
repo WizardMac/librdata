@@ -22,6 +22,12 @@ static int handle_column(const char *name, rdata_type_t type,
     return 0;
 }
 
+static int handle_column_name(const char *name, int index, void *ctx) {
+    if (debug) printf("Read column name: %s\n", name);
+    /* Do something... */
+    return 0;
+}
+
 // Called once per row for a text column
 static int handle_text_value(const char *value, int index, void *ctx) {
     if (debug) printf("Read text value: %s at %d\n", value, index);
@@ -41,6 +47,7 @@ int main() {
 
     rdata_set_table_handler(parser, &handle_table);
     rdata_set_column_handler(parser, &handle_column);
+    rdata_set_column_name_handler(parser, &handle_column_name);
     rdata_set_text_value_handler(parser, &handle_text_value);
     rdata_set_value_label_handler(parser, &handle_value_label);
 

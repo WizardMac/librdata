@@ -22,9 +22,18 @@ static int handle_table(const char *name, void *ctx) {
     return 0; /* non-zero to abort processing */
 }
 
-// Called once for all columns. "data" is NULL for text columns.
+// Called once for all columns with the following caveats:
+// * `name` is NULL for some columns (see handle_column_name below)
+// * `data` is NULL for text columns (see handle_text_value below)
 static int handle_column(const char *name, rdata_type_t type,
                          void *data, long count, void *ctx) {
+    /* Do something... */
+    return 0;
+}
+
+// Some column names appear in the file after the data
+static int handle_column_name(const char *name, int index, void *ctx) {
+    if (debug) printf("Read column name: %s\n", name);
     /* Do something... */
     return 0;
 }
