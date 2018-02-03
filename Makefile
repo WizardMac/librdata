@@ -1,18 +1,45 @@
-CC=clang
-MIN_OSX=10.10
-DYLIB=librdata.dylib
-PREFIX=/usr/local
+## Set this to 1 if you have libfuzz support
+HAVE_FUZZER=0
 
-.PHONY: test
+## detect operating system
+ifeq ($(OS), Windows_NT)
+	UNAME := Windows
+else
+	UNAME := $(shell uname -s)
+endif
 
-all:
+ifeq ($(UNAME), Darwin)
+	CC=clang
+	MIN_OSX=10.10
+	DYLIB=librdata.dylib
+	PREFIX=/usr/local
+	LIBS=-L/usr/local/lib -llzma -lz -mmacosx-version-min=$(MIN_OSX)
+	CFLAGS=-DHAVE_LZMA=1 -Wall -Werror -dynamiclib
+endif
+
+ifeq ($(UNAME), Linux)
+	CFLAGS=-DHAVE_LZMA=1 -Wall -Werror -I/usr/local/include -Isrc/
+	LIBS=-L/usr/local/lib -llzma -lz
+endif
+
+.PHONY: 	test
+
+all:		writeEx library
+
+writeEx:	writeEx.o
+	$(CC) $(CFLAGS) -o $@ $^ src/*c $(LIBS)
+
+library:
+ifeq ($(UNAME), Darwin)
 	@mkdir -p obj
-	$(CC) -DHAVE_LZMA=1 -Os src/*.c -dynamiclib -o obj/$(DYLIB) -I/usr/local/include -L/usr/local/lib -llzma -lz -Wall -Werror -mmacosx-version-min=$(MIN_OSX)
+	$(CC) $(CFLAGS) -Os src/*.c -o obj/$(DYLIB) $(LIBS) 
+endif
+ifeq ($(HAVE_FUZZER), "1")
 	$(CC) -DHAVE_LZMA=1 -g src/*.c src/fuzz/fuzz_rdata.c -o obj/fuzz_rdata \
-		-I/usr/local/include -L/usr/local/lib \
-		-lstdc++ -lFuzzer -llzma -lz \
+		-lstdc++ -lFuzzer $(LIBS) \
 		-fsanitize=address -fsanitize-coverage=trace-pc-guard,trace-cmp \
-		-Wall -Werror -mmacosx-version-min=$(MIN_OSX)
+		-Wall -Werror 
+endif
 
 install:
 	cp obj/$(DYLIB) $(PREFIX)/lib/
