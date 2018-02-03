@@ -18,22 +18,27 @@ Example usage:
 
 static int handle_table(const char *name, void *ctx) {
     printf("Read table: %s\n", name);
+
+    return 0; /* non-zero to abort processing */
 }
 
 // Called once for all columns. "data" is NULL for text columns.
 static int handle_column(const char *name, rdata_type_t type,
                          void *data, long count, void *ctx) {
     /* Do something... */
+    return 0;
 }
 
 // Called once per row for a text column
 static int handle_text_value(const char *value, int index, void *ctx) {
     /* Do something... */
+    return 0;
 }
 
 // Called for factor variables, once for each level
 static int handle_value_label(const char *value, int index, void *ctx) {
     /* Do something... */
+    return 0;
 }
 
 rdata_parser_t *parser = rdata_parser_init();
@@ -61,7 +66,7 @@ static ssize_t write_data(const void *bytes, size_t len, void *ctx) {
 }
 
 int row_count = 3;
-int fd = open("/path/to/somewhere.rdata", O_WRONLY, 0644);
+int fd = open("/path/to/somewhere.rdata", O_CREAT | O_WRONLY, 0644);
 rdata_writer_t *writer = rdata_writer_init(&write_data);
 
 rdata_column_t *col1 = rdata_add_column(writer, "column1", RDATA_TYPE_REAL);
