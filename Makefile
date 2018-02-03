@@ -24,9 +24,12 @@ endif
 
 .PHONY: 	test
 
-all:		writeEx library
+all:		writeEx readEx library
 
-writeEx:	writeEx.o
+writeEx:	writeEx.c
+	$(CC) $(CFLAGS) -o $@ $^ src/*c $(LIBS)
+
+readEx:		readEx.c
 	$(CC) $(CFLAGS) -o $@ $^ src/*c $(LIBS)
 
 library:
