@@ -13,7 +13,7 @@ endif
 ## common..
 PREFIX=/usr/local
 BASE_LIBS=-L/usr/local/lib -lz
-BASE_CFLAGS=-Os -DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -Isrc -I/usr/local/include -std=c99
+BASE_CFLAGS=-Os -DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -I/usr/local/include -std=c99
 
 ## on macOS ...
 ifeq ($(UNAME), Darwin)
@@ -59,10 +59,10 @@ ifeq ($(HAVE_FUZZER), 1)
 endif
 
 writeEx:	writeEx.c
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) -lrdata
+	$(CC) -Isrc $(CFLAGS) -o $@ $^ -Lobj $(LIBS) -lrdata
 
 readEx:		readEx.c
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) -lrdata
+	$(CC) -Isrc $(CFLAGS) -o $@ $^ -Lobj $(LIBS) -lrdata
 
 install:
 	cp obj/$(DYLIB) $(PREFIX)/lib/
