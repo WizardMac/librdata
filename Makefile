@@ -18,8 +18,8 @@ ifeq ($(UNAME), Darwin)
 	CC=clang
 	MIN_OSX=10.10
 	DYLIB=librdata.dylib
-	CFLAGS=-DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -dynamiclib -mmacosx-version-min=$(MIN_OSX)
-	LFLAGS=-Os
+	CFLAGS=-DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -mmacosx-version-min=$(MIN_OSX)
+	LFLAGS=-Os -dynamiclib
 	BASE_LIBS=-L/usr/local/lib -lz -lrdata
 endif
 
