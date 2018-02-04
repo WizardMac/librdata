@@ -5,7 +5,7 @@
 #include <math.h>
 #include <fcntl.h>
 
-#include "rdata.h"
+#include <rdata.h>
 
 const int debug = 0;
 
@@ -17,7 +17,7 @@ static int handle_table(const char *name, void *ctx) {
 // Called once for all columns. "data" is NULL for text columns.
 static int handle_column(const char *name, rdata_type_t type,
                          void *data, long count, void *ctx) {
-    if (debug) printf("Read column: %s with %ld elements\n", name, count);
+    if (debug) printf("Read column: %s with %ld elements of type %d\n", name, count, type);
     /* Do something... */
     return 0;
 }
@@ -51,9 +51,15 @@ int main() {
     rdata_set_text_value_handler(parser, &handle_text_value);
     rdata_set_value_label_handler(parser, &handle_value_label);
 
+    if (access("somewhere.rdata", F_OK) != -1) {
+        rdata_error_t err = rdata_parse(parser, "somewhere.rdata", NULL);
+        if (debug) printf("Error code %d\n", err);
+    }
 
-    rdata_error_t err = rdata_parse(parser, "somewhere.rdata", NULL);
-    if (debug) printf("Error %d\n", err);
+    if (access("some.rds", F_OK) != -1) {
+        rdata_error_t err = rdata_parse(parser, "some.rds", NULL);
+        if (debug) printf("Error code %d\n", err);
+    }
 
     exit(0);
 }
