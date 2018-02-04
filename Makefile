@@ -10,19 +10,25 @@ else
 	UNAME := $(shell uname -s)
 endif
 
+## common..
+PREFIX=/usr/local
+
+## on macOS ...
 ifeq ($(UNAME), Darwin)
 	CC=clang
 	MIN_OSX=10.10
 	DYLIB=librdata.dylib
-	PREFIX=/usr/local
-
 	CFLAGS=-DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -dynamiclib -mmacosx-version-min=$(MIN_OSX)
-	BASE_LIBS=-L/usr/local/lib -lz
+	LFLAGS=-Os
+	BASE_LIBS=-L/usr/local/lib -lz -lrdata
 endif
 
+## on Linux ...
 ifeq ($(UNAME), Linux)
-	CFLAGS=-DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -I/usr/local/include -Isrc/
-	BASE_LIBS=-L/usr/local/lib -lz
+	CFLAGS=-fPIC -DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -I/usr/local/include
+	LFLAGS=-Os -shared
+	BASE_LIBS=-L/usr/local/lib -lz -lrdata
+	DYLIB=librdata.so
 endif
 
 ifeq ($(HAVE_LZMA), 1)
@@ -31,30 +37,38 @@ else
 	LIBS=$(BASE_LIBS)
 endif
 
-.PHONY: 	test
 
-all:		writeEx readEx library
+sources := 	$(wildcard src/*.c)
+objects := 	$(sources:.c=.o)
 
-writeEx:	writeEx.c
-	$(CC) $(CFLAGS) -o $@ $^ src/*c $(LIBS)
+.PHONY:		test
 
-readEx:		readEx.c
-	$(CC) $(CFLAGS) -o $@ $^ src/*c $(LIBS)
+all:		library writeEx readEx
 
-library:
-ifeq ($(UNAME), Darwin)
-	@mkdir -p obj
-	$(CC) $(CFLAGS) -Os src/*.c -o obj/$(DYLIB) $(LIBS) 
-endif
+${objects}:	${sources}
+
+library:	${objects}
+	@if [ ! -d obj ]; then mkdir -p obj; fi
+	$(CC) $(LFLAGS) ${objects} -o obj/$(DYLIB) $(LIBS)
+	@echo "## NB: library has been built, you may need 'sudo make install' now"
 ifeq ($(HAVE_FUZZER), 1)
 	$(CC) -DHAVE_LZMA=1 -g src/*.c src/fuzz/fuzz_rdata.c -o obj/fuzz_rdata \
 		-lstdc++ -lFuzzer $(LIBS) \
 		-fsanitize=address -fsanitize-coverage=trace-pc-guard,trace-cmp \
-		-Wall -Werror 
+		-Wall -Werror
 endif
+
+writeEx:	writeEx.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
+readEx:		readEx.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 install:
 	cp obj/$(DYLIB) $(PREFIX)/lib/
+ifeq ($(UNAME), Linux)
+	ldconfig
+endif
 	cp src/rdata.h $(PREFIX)/include/
 
 uninstall:
@@ -62,6 +76,4 @@ uninstall:
 	rm $(PREFIX)/include/rdata.h
 
 clean:
-	rm -rf obj
-	rm readEx
-	rm writeEx
+	rm -rf obj/ ${objects} readEx writeEx somewhere.rdata
