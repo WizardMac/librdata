@@ -74,9 +74,12 @@ rdata_error_t rdata_column_add_factor(rdata_column_t *column, const char *factor
     if (column->type != RDATA_TYPE_INT32)
         return RDATA_ERROR_FACTOR;
 
+    char *factor_copy = malloc(strlen(factor)+1);
+    strcpy(factor_copy, factor);
+
     column->factor_count++;
-    column->factor = realloc(column->factor, sizeof(const char *) * column->factor_count);
-    column->factor[column->factor_count-1] = strdup(factor);
+    column->factor = realloc(column->factor, sizeof(char *) * column->factor_count);
+    column->factor[column->factor_count-1] = factor_copy;
 
     return RDATA_OK;
 }
