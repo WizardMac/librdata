@@ -13,7 +13,7 @@ endif
 ## common..
 PREFIX=/usr/local
 BASE_LIBS=-L/usr/local/lib -lz
-BASE_CFLAGS=-Os -DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -I/usr/local/include
+BASE_CFLAGS=-Os -DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -I/usr/local/include -std=c99
 
 ## on macOS ...
 ifeq ($(UNAME), Darwin)

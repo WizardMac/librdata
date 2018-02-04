@@ -494,7 +494,7 @@ rdata_error_t rdata_end_table(rdata_writer_t *writer, const char *datalabel) {
         goto cleanup;
 
     char buf[128];
-    for (int i=0; i<writer->row_count; i++) {
+    for (i=0; i<writer->row_count; i++) {
         sprintf(buf, "%d", i+1);
         retval = rdata_write_string(writer, buf);
         if (retval != RDATA_OK)
