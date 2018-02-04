@@ -14,10 +14,53 @@ static int handle_table(const char *name, void *ctx) {
     return 0;
 }
 
+char *rdata_type_text[] = {
+    "String",
+    "Integer",
+    "Real",
+    "Logical",
+    "Timestamp"
+};
+
 // Called once for all columns. "data" is NULL for text columns.
 static int handle_column(const char *name, rdata_type_t type,
                          void *data, long count, void *ctx) {
-    if (debug) printf("Read column: %s with %ld elements of type %d\n", name, count, type);
+    if (debug) printf("Read column: %s with %ld elements of type %s\n", name, count,
+                      rdata_type_text[type]);
+    for (long i=0; i<count; i++) {
+        switch(type) {
+        case RDATA_TYPE_STRING: {
+            // do nothing, handle_text_value is called
+            break;
+        }
+        case RDATA_TYPE_INT32: {
+            int *ip = data;
+            if (debug) printf("%d ", ip[i]);
+            break;
+        }
+        case RDATA_TYPE_REAL: {
+            double *dp = data;
+            if (debug) printf("%f ", dp[i]);
+            break;
+        }
+        case RDATA_TYPE_LOGICAL: {
+            int *ip = data;
+            if (debug) printf("%d ", ip[i]);
+            break;
+        }
+        case RDATA_TYPE_TIMESTAMP: {
+            double *dp = data;
+            if (debug) printf("%f ", dp[i]);
+            break;
+        }
+        default: {
+            if (debug) printf("(unknown) ");
+            break;
+        }
+        }
+    }
+    if (debug && type != RDATA_TYPE_STRING) printf("\n");
+
     /* Do something... */
     return 0;
 }
