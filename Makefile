@@ -12,23 +12,23 @@ endif
 
 ## common..
 PREFIX=/usr/local
+BASE_LIBS=-L/usr/local/lib -lz
+BASE_CFLAGS=-Os -DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -I/usr/local/include
 
 ## on macOS ...
 ifeq ($(UNAME), Darwin)
 	CC=clang
 	MIN_OSX=10.10
 	DYLIB=librdata.dylib
-	CFLAGS=-DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -mmacosx-version-min=$(MIN_OSX)
-	LFLAGS=-Os -dynamiclib
-	BASE_LIBS=-L/usr/local/lib -lz -lrdata
+	CFLAGS=$(BASE_CFLAGS) -mmacosx-version-min=$(MIN_OSX)
+	LFLAGS=-dynamiclib
 endif
 
 ## on Linux ...
 ifeq ($(UNAME), Linux)
-	CFLAGS=-fPIC -DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -I/usr/local/include
-	LFLAGS=-Os -shared
-	BASE_LIBS=-L/usr/local/lib -lz -lrdata
 	DYLIB=librdata.so
+	CFLAGS=$(BASE_CFLAGS) -fPIC
+	LFLAGS=-shared
 endif
 
 ifeq ($(HAVE_LZMA), 1)
@@ -59,10 +59,10 @@ ifeq ($(HAVE_FUZZER), 1)
 endif
 
 writeEx:	writeEx.c
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) -lrdata
 
 readEx:		readEx.c
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) -lrdata
 
 install:
 	cp obj/$(DYLIB) $(PREFIX)/lib/
