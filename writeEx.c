@@ -5,7 +5,7 @@
 #include <math.h>
 #include <fcntl.h>
 
-#include "rdata.h"
+#include <rdata.h>
 
 static ssize_t write_data(const void *bytes, size_t len, void *ctx) {
     int fd = *(int *)ctx;
