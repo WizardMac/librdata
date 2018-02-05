@@ -21,7 +21,7 @@ ifeq ($(UNAME), Darwin)
 	MIN_OSX=10.10
 	DYLIB=librdata.dylib
 	CFLAGS=$(BASE_CFLAGS) -mmacosx-version-min=$(MIN_OSX)
-	LFLAGS=-dynamiclib
+	LFLAGS=-dynamiclib -mmacosx-version-min=$(MIN_OSX)
 endif
 
 ## on Linux ...
@@ -68,6 +68,9 @@ install:
 	cp obj/$(DYLIB) $(PREFIX)/lib/
 ifeq ($(UNAME), Linux)
 	ldconfig
+endif
+ifeq ($(UNAME), Darwin)
+	install_name_tool -id $(PREFIX)/lib/$(DYLIB) $(PREFIX)/lib/$(DYLIB)
 endif
 	cp src/rdata.h $(PREFIX)/include/
 
