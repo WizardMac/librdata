@@ -15,7 +15,7 @@ static ssize_t write_data(const void *bytes, size_t len, void *ctx) {
 int main() {
     int row_count = 3;
     int fd = open("somewhere.rdata", O_CREAT | O_WRONLY, 0644);
-    rdata_writer_t *writer = rdata_writer_init(&write_data);
+    rdata_writer_t *writer = rdata_writer_init(&write_data, RDATA_WORKSPACE);
 
     rdata_column_t *col1 = rdata_add_column(writer, "column1", RDATA_TYPE_REAL);
     rdata_column_t *col2 = rdata_add_column(writer, "column2", RDATA_TYPE_STRING);

@@ -23,6 +23,11 @@ typedef enum rdata_error_e {
     RDATA_ERROR_FACTOR
 } rdata_error_t;
 
+typedef enum rdata_file_format_e {
+    RDATA_WORKSPACE,
+    RDATA_SINGLE_OBJECT
+} rdata_file_format_t;
+
 const char *rdata_error_message(rdata_error_t error_code);
 
 typedef int (*rdata_column_handler)(const char *name, rdata_type_t type,
@@ -107,6 +112,7 @@ typedef struct rdata_column_s {
 } rdata_column_t;
 
 typedef struct rdata_writer_s {
+    rdata_file_format_t file_format;
     rdata_data_writer   data_writer;
     size_t              bytes_written;
 
@@ -123,7 +129,7 @@ typedef struct rdata_writer_s {
     int32_t             row_count;
 } rdata_writer_t;
 
-rdata_writer_t *rdata_writer_init(rdata_data_writer write_callback);
+rdata_writer_t *rdata_writer_init(rdata_data_writer write_callback, rdata_file_format_t format);
 void rdata_writer_free(rdata_writer_t *writer);
 
 rdata_column_t *rdata_add_column(rdata_writer_t *writer, const char *name, rdata_type_t type);

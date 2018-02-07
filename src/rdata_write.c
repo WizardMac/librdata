@@ -13,8 +13,9 @@
 
 #define INITIAL_COLUMNS_CAPACITY    100
 
-rdata_writer_t *rdata_writer_init(rdata_data_writer write_callback) {
+rdata_writer_t *rdata_writer_init(rdata_data_writer write_callback, rdata_file_format_t format) {
     rdata_writer_t *writer = calloc(1, sizeof(rdata_writer_t));
+    writer->file_format = format;
     writer->bswap = machine_is_little_endian();
     writer->atom_table = ck_hash_table_init(100);
     writer->data_writer = write_callback;
@@ -204,9 +205,11 @@ rdata_error_t rdata_begin_file(rdata_writer_t *writer, void *user_ctx) {
 
     writer->user_ctx = user_ctx;
 
-    retval = rdata_write_bytes(writer, "RDX2\n", 5);
-    if (retval != RDATA_OK)
-        goto cleanup;
+    if (writer->file_format == RDATA_WORKSPACE) {
+        retval = rdata_write_bytes(writer, "RDX2\n", 5);
+        if (retval != RDATA_OK)
+            goto cleanup;
+    }
 
     rdata_v2_header_t v2_header;
     memcpy(v2_header.header, "X\n", sizeof("X\n")-1);
@@ -231,9 +234,11 @@ cleanup:
 rdata_error_t rdata_begin_table(rdata_writer_t *writer, const char *variable_name, int32_t row_count) {
     rdata_error_t retval = RDATA_OK;
 
-    retval = rdata_write_pairlist_header(writer, variable_name);
-    if (retval != RDATA_OK)
-        goto cleanup;
+    if (writer->file_format == RDATA_WORKSPACE) {
+        retval = rdata_write_pairlist_header(writer, variable_name);
+        if (retval != RDATA_OK)
+            goto cleanup;
+    }
 
     retval = rdata_write_header(writer, RDATA_SEXPTYPE_GENERIC_VECTOR, 
             R_OBJECT | R_ATTRIBUTES); 
@@ -513,5 +518,8 @@ cleanup:
 }
 
 rdata_error_t rdata_end_file(rdata_writer_t *writer) {
-    return rdata_write_header(writer, RDATA_PSEUDO_SXP_NIL, 0);
+    if (writer->file_format == RDATA_WORKSPACE)
+        return rdata_write_header(writer, RDATA_PSEUDO_SXP_NIL, 0);
+
+    return RDATA_OK;
 }
