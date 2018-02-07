@@ -1,7 +1,7 @@
 ## Set this to 1 if you have libFuzzer support
 HAVE_FUZZER=0
 ## Set to 1 if you have liblzma (used for reading compressed files)
-HAVE_LZMA=0
+HAVE_LZMA=1
 
 ## detect operating system
 ifeq ($(OS), Windows_NT)

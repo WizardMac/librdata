@@ -125,8 +125,6 @@ typedef struct rdata_writer_s {
     rdata_column_t    **columns;
     int32_t             columns_count;
     int32_t             columns_capacity;
-
-    int32_t             row_count;
 } rdata_writer_t;
 
 rdata_writer_t *rdata_writer_init(rdata_data_writer write_callback, rdata_file_format_t format);
@@ -140,8 +138,8 @@ rdata_error_t rdata_column_add_factor(rdata_column_t *column, const char *factor
 rdata_column_t *rdata_get_column(rdata_writer_t *writer, int32_t j);
 
 rdata_error_t rdata_begin_file(rdata_writer_t *writer, void *ctx);
-rdata_error_t rdata_begin_table(rdata_writer_t *writer, const char *variable_name, int32_t row_count);
-rdata_error_t rdata_begin_column(rdata_writer_t *writer, rdata_column_t *column);
+rdata_error_t rdata_begin_table(rdata_writer_t *writer, const char *variable_name);
+rdata_error_t rdata_begin_column(rdata_writer_t *writer, rdata_column_t *column, int32_t row_count);
 
 rdata_error_t rdata_append_real_value(rdata_writer_t *writer, double value);
 rdata_error_t rdata_append_int32_value(rdata_writer_t *writer, int32_t value);
@@ -150,5 +148,5 @@ rdata_error_t rdata_append_logical_value(rdata_writer_t *writer, int value);
 rdata_error_t rdata_append_string_value(rdata_writer_t *writer, const char *value);
 
 rdata_error_t rdata_end_column(rdata_writer_t *writer, rdata_column_t *column);
-rdata_error_t rdata_end_table(rdata_writer_t *writer, const char *datalabel);
+rdata_error_t rdata_end_table(rdata_writer_t *writer, int32_t row_count, const char *datalabel);
 rdata_error_t rdata_end_file(rdata_writer_t *writer);

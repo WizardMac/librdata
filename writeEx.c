@@ -21,21 +21,21 @@ int main() {
     rdata_column_t *col2 = rdata_add_column(writer, "column2", RDATA_TYPE_STRING);
 
     rdata_begin_file(writer, &fd);
-    rdata_begin_table(writer, "my_table", row_count);
+    rdata_begin_table(writer, "my_table");
 
-    rdata_begin_column(writer, col1);
+    rdata_begin_column(writer, col1, row_count);
     rdata_append_real_value(writer, 0.0);
     rdata_append_real_value(writer, 100.0);
     rdata_append_real_value(writer, NAN);
     rdata_end_column(writer, col1);
 
-    rdata_begin_column(writer, col2);
+    rdata_begin_column(writer, col2, row_count);
     rdata_append_string_value(writer, "hello");
     rdata_append_string_value(writer, "goodbye");
     rdata_append_string_value(writer, NULL);
     rdata_end_column(writer, col2);
 
-    rdata_end_table(writer, "My data set");
+    rdata_end_table(writer, row_count, "My data set");
     rdata_end_file(writer);
 
     close(fd);

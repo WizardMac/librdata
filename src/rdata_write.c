@@ -231,7 +231,7 @@ cleanup:
     return retval;
 }
 
-rdata_error_t rdata_begin_table(rdata_writer_t *writer, const char *variable_name, int32_t row_count) {
+rdata_error_t rdata_begin_table(rdata_writer_t *writer, const char *variable_name) {
     rdata_error_t retval = RDATA_OK;
 
     if (writer->file_format == RDATA_WORKSPACE) {
@@ -249,20 +249,18 @@ rdata_error_t rdata_begin_table(rdata_writer_t *writer, const char *variable_nam
     if (retval != RDATA_OK)
         goto cleanup;
 
-    writer->row_count = row_count;
-
 cleanup:
     return retval;
 }
 
-static rdata_error_t rdata_begin_factor_column(rdata_writer_t *writer, rdata_column_t *column) {
+static rdata_error_t rdata_begin_factor_column(rdata_writer_t *writer, rdata_column_t *column, int32_t row_count) {
     rdata_error_t retval = RDATA_OK;
 
     retval = rdata_write_header(writer, RDATA_SEXPTYPE_INTEGER_VECTOR, R_OBJECT | R_ATTRIBUTES);
     if (retval != RDATA_OK)
         goto cleanup;
 
-    retval = rdata_write_integer(writer, writer->row_count);
+    retval = rdata_write_integer(writer, row_count);
     if (retval != RDATA_OK)
         goto cleanup;
 
@@ -310,16 +308,16 @@ cleanup:
     return retval;
 }
 
-static rdata_error_t rdata_begin_real_column(rdata_writer_t *writer, rdata_column_t *column) {
-    return rdata_write_simple_vector_header(writer, RDATA_SEXPTYPE_REAL_VECTOR, writer->row_count);
+static rdata_error_t rdata_begin_real_column(rdata_writer_t *writer,rdata_column_t *column, int32_t row_count) {
+    return rdata_write_simple_vector_header(writer, RDATA_SEXPTYPE_REAL_VECTOR, row_count);
 }
 
 static rdata_error_t rdata_end_real_column(rdata_writer_t *writer, rdata_column_t *column) {
     return RDATA_OK;
 }
 
-static rdata_error_t rdata_begin_timestamp_column(rdata_writer_t *writer, rdata_column_t *column) {
-    return rdata_write_simple_vector_header(writer, RDATA_SEXPTYPE_REAL_VECTOR, writer->row_count);
+static rdata_error_t rdata_begin_timestamp_column(rdata_writer_t *writer, rdata_column_t *column, int32_t row_count) {
+    return rdata_write_simple_vector_header(writer, RDATA_SEXPTYPE_REAL_VECTOR, row_count);
 }
 
 static rdata_error_t rdata_end_timestamp_column(rdata_writer_t *writer, rdata_column_t *column) {
@@ -345,46 +343,46 @@ cleanup:
     return retval;
 }
 
-static rdata_error_t rdata_begin_integer_column(rdata_writer_t *writer, rdata_column_t *column) {
-    return rdata_write_simple_vector_header(writer, RDATA_SEXPTYPE_INTEGER_VECTOR, writer->row_count);
+static rdata_error_t rdata_begin_integer_column(rdata_writer_t *writer, rdata_column_t *column, int32_t row_count) {
+    return rdata_write_simple_vector_header(writer, RDATA_SEXPTYPE_INTEGER_VECTOR, row_count);
 }
 
 static rdata_error_t rdata_end_integer_column(rdata_writer_t *writer, rdata_column_t *column) {
     return RDATA_OK;
 }
 
-static rdata_error_t rdata_begin_logical_column(rdata_writer_t *writer, rdata_column_t *column) {
-    return rdata_write_simple_vector_header(writer, RDATA_SEXPTYPE_LOGICAL_VECTOR, writer->row_count);
+static rdata_error_t rdata_begin_logical_column(rdata_writer_t *writer, rdata_column_t *column, int32_t row_count) {
+    return rdata_write_simple_vector_header(writer, RDATA_SEXPTYPE_LOGICAL_VECTOR, row_count);
 }
 
 static rdata_error_t rdata_end_logical_column(rdata_writer_t *writer, rdata_column_t *column) {
     return RDATA_OK;
 }
 
-static rdata_error_t rdata_begin_string_column(rdata_writer_t *writer, rdata_column_t *column) {
-    return rdata_write_simple_vector_header(writer, RDATA_SEXPTYPE_CHARACTER_VECTOR, writer->row_count);
+static rdata_error_t rdata_begin_string_column(rdata_writer_t *writer, rdata_column_t *column, int32_t row_count) {
+    return rdata_write_simple_vector_header(writer, RDATA_SEXPTYPE_CHARACTER_VECTOR, row_count);
 }
 
 static rdata_error_t rdata_end_string_column(rdata_writer_t *writer, rdata_column_t *column) {
     return RDATA_OK;
 }
 
-rdata_error_t rdata_begin_column(rdata_writer_t *writer, rdata_column_t *column) {
+rdata_error_t rdata_begin_column(rdata_writer_t *writer, rdata_column_t *column, int32_t row_count) {
     rdata_type_t type = column->type;
 
     if (type == RDATA_TYPE_INT32) {
         if (column->factor_count)
-            return rdata_begin_factor_column(writer, column);
-        return rdata_begin_integer_column(writer, column);
+            return rdata_begin_factor_column(writer, column, row_count);
+        return rdata_begin_integer_column(writer, column, row_count);
     }
     if (type == RDATA_TYPE_REAL)
-        return rdata_begin_real_column(writer, column);
+        return rdata_begin_real_column(writer, column, row_count);
     if (type == RDATA_TYPE_TIMESTAMP)
-        return rdata_begin_timestamp_column(writer, column);
+        return rdata_begin_timestamp_column(writer, column, row_count);
     if (type == RDATA_TYPE_LOGICAL)
-        return rdata_begin_logical_column(writer, column);
+        return rdata_begin_logical_column(writer, column, row_count);
     if (type == RDATA_TYPE_STRING)
-        return rdata_begin_string_column(writer, column);
+        return rdata_begin_string_column(writer, column, row_count);
 
     return RDATA_OK;
 }
@@ -434,7 +432,7 @@ rdata_error_t rdata_end_column(rdata_writer_t *writer, rdata_column_t *column) {
     return RDATA_OK;
 }
 
-rdata_error_t rdata_end_table(rdata_writer_t *writer, const char *datalabel) {
+rdata_error_t rdata_end_table(rdata_writer_t *writer, int32_t row_count, const char *datalabel) {
     int i;
     rdata_error_t retval = RDATA_OK;
 
@@ -492,21 +490,23 @@ rdata_error_t rdata_end_table(rdata_writer_t *writer, const char *datalabel) {
     if (retval != RDATA_OK)
         goto cleanup;
     
-    retval = rdata_write_pairlist_header(writer, "row.names");
-    if (retval != RDATA_OK)
-        goto cleanup;
-    
-    retval = rdata_write_simple_vector_header(writer, 
-            RDATA_SEXPTYPE_CHARACTER_VECTOR, writer->row_count);
-    if (retval != RDATA_OK)
-        goto cleanup;
-
-    char buf[128];
-    for (i=0; i<writer->row_count; i++) {
-        sprintf(buf, "%d", i+1);
-        retval = rdata_write_string(writer, buf);
+    if (row_count > 0) {
+        retval = rdata_write_pairlist_header(writer, "row.names");
         if (retval != RDATA_OK)
             goto cleanup;
+
+        retval = rdata_write_simple_vector_header(writer, 
+                RDATA_SEXPTYPE_CHARACTER_VECTOR, row_count);
+        if (retval != RDATA_OK)
+            goto cleanup;
+
+        char buf[128];
+        for (i=0; i<row_count; i++) {
+            sprintf(buf, "%d", i+1);
+            retval = rdata_write_string(writer, buf);
+            if (retval != RDATA_OK)
+                goto cleanup;
+        }
     }
     
     retval = rdata_write_header(writer, RDATA_PSEUDO_SXP_NIL, 0);
