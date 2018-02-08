@@ -12,9 +12,9 @@ static ssize_t write_data(const void *bytes, size_t len, void *ctx) {
     return write(fd, bytes, len);
 }
 
-int main() {
+void writeRData() {
     int row_count = 3;
-    int fd = open("somewhere.rdata", O_CREAT | O_WRONLY, 0644);
+    int fd = open("example.RData", O_CREAT | O_WRONLY, 0644);
     rdata_writer_t *writer = rdata_writer_init(&write_data, RDATA_WORKSPACE);
 
     rdata_column_t *col1 = rdata_add_column(writer, "column1", RDATA_TYPE_REAL);
@@ -39,7 +39,31 @@ int main() {
     rdata_end_file(writer);
 
     close(fd);
+}
 
+void writeRDS() {
+    int row_count = 3;
+    int fd = open("example.rds", O_CREAT | O_WRONLY, 0644);
+    rdata_writer_t *writer = rdata_writer_init(&write_data, RDATA_SINGLE_OBJECT);
+
+    rdata_column_t *col = rdata_add_column(writer, "column1", RDATA_TYPE_REAL);
+
+    rdata_begin_file(writer, &fd);
+
+    rdata_begin_column(writer, col, row_count);
+    rdata_append_real_value(writer, 42.0);
+    rdata_append_real_value(writer, -7.0);
+    rdata_append_real_value(writer, NAN);
+    rdata_end_column(writer, col);
+
+    rdata_end_file(writer);
+
+    close(fd);
+}
+
+int main() {
+    writeRData();
+    writeRDS();
     printf("Done\n");
     exit(0);
 }

@@ -1,13 +1,18 @@
 ## Set this to 1 if you have libFuzzer support
 HAVE_FUZZER=0
-## Set to 1 if you have liblzma (used for reading compressed files)
-HAVE_LZMA=0
+
+## Sets to 1 if we have liblzma (tested quickly via header) -- override as needed
+ifeq ($(wildcard /usr/include/lzma.h),)
+    HAVE_LZMA=0
+else
+    HAVE_LZMA=1
+endif
 
 ## detect operating system
 ifeq ($(OS), Windows_NT)
-	UNAME := Windows
+    UNAME := Windows
 else
-	UNAME := $(shell uname -s)
+    UNAME := $(shell uname -s)
 endif
 
 ## common..
@@ -17,24 +22,24 @@ BASE_CFLAGS=-Os -DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -I/usr/local/include -std
 
 ## on macOS ...
 ifeq ($(UNAME), Darwin)
-	CC=clang
-	MIN_OSX=10.10
-	DYLIB=librdata.dylib
-	CFLAGS=$(BASE_CFLAGS) -mmacosx-version-min=$(MIN_OSX)
-	LFLAGS=-dynamiclib -mmacosx-version-min=$(MIN_OSX)
+    CC=clang
+    MIN_OSX=10.10
+    DYLIB=librdata.dylib
+    CFLAGS=$(BASE_CFLAGS) -mmacosx-version-min=$(MIN_OSX)
+    LFLAGS=-dynamiclib -mmacosx-version-min=$(MIN_OSX)
 endif
 
 ## on Linux ...
 ifeq ($(UNAME), Linux)
-	DYLIB=librdata.so
-	CFLAGS=$(BASE_CFLAGS) -fPIC
-	LFLAGS=-shared
+    DYLIB=librdata.so
+    CFLAGS=$(BASE_CFLAGS) -fPIC
+    LFLAGS=-shared
 endif
 
 ifeq ($(HAVE_LZMA), 1)
-	LIBS=$(BASE_LIBS) -llzma
+    LIBS=$(BASE_LIBS) -llzma
 else
-	LIBS=$(BASE_LIBS)
+    LIBS=$(BASE_LIBS)
 endif
 
 
@@ -79,4 +84,4 @@ uninstall:
 	rm $(PREFIX)/include/rdata.h
 
 clean:
-	rm -rf obj/ ${objects} readEx writeEx somewhere.rdata
+	rm -rf obj/ ${objects} readEx writeEx example.RData example.rds
