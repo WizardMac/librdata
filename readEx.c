@@ -95,12 +95,12 @@ int main() {
     rdata_set_value_label_handler(parser, &handle_value_label);
 
     if (access("example.RData", F_OK) != -1) {
-        rdata_error_t err = rdata_parse(parser, "somewhere.rdata", NULL);
+        rdata_error_t err = rdata_parse(parser, "example.RData", NULL);
         if (debug) printf("Error code %d\n", err);
     }
 
     if (access("example.rds", F_OK) != -1) {
-        rdata_error_t err = rdata_parse(parser, "some.rds", NULL);
+        rdata_error_t err = rdata_parse(parser, "example.rds", NULL);
         if (debug) printf("Error code %d\n", err);
     }
 
