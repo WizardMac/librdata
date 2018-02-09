@@ -85,3 +85,7 @@ uninstall:
 
 clean:
 	rm -rf obj/ ${objects} readEx writeEx example.RData example.rds
+
+check:
+	@if [ -f example.RData ]; then R --slave -e 'load("example.RData"); print(my_table); q()'; fi
+	@if [ -f example.rds ]; then R --slave -e 'x <- readRDS("example.rds"); print(x); q()'; fi
