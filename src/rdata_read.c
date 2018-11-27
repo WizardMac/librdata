@@ -8,11 +8,16 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <math.h>
-#include <zlib.h>
 
+#if HAVE_APPLE_COMPRESSION
+#include <compression.h>
+#else
+#include <zlib.h>
 #if HAVE_LZMA
 #include <lzma.h>
 #endif
+#endif
+
 
 #include "rdata.h"
 #include "rdata_internal.h"
@@ -36,10 +41,14 @@ typedef struct rdata_ctx_s {
     rdata_text_value_handler     value_label_handler;
     rdata_error_handler       error_handler;
     void                        *user_ctx;
+#if HAVE_APPLE_COMPRESSION
+    compression_stream          *compression_strm;
+#else
+    z_stream                    *z_strm;
 #if HAVE_LZMA
     lzma_stream                 *lzma_strm;
 #endif
-    z_stream                    *z_strm;
+#endif
     unsigned char               *strm_buffer;
     rdata_io_t               *io;
     size_t                       bytes_read;
@@ -94,6 +103,60 @@ static char *atom_table_lookup(rdata_atom_table_t *table, int index) {
     return &table->data[(index-1)*RDATA_ATOM_LEN];
 }
 
+#if HAVE_APPLE_COMPRESSION
+static ssize_t read_st_compression(rdata_ctx_t *ctx, void *buffer, size_t len) {
+    ssize_t bytes_written = 0;
+    int error = 0;
+    compression_status result = COMPRESSION_STATUS_OK;
+    size_t start_size = len;
+
+    ctx->compression_strm->dst_ptr = (unsigned char *)buffer;
+    ctx->compression_strm->dst_size = len;
+
+    while (1) {
+        start_size = ctx->compression_strm->dst_size;
+
+        result = compression_stream_process(ctx->compression_strm, 0);
+
+        if (result == COMPRESSION_STATUS_OK) {
+            bytes_written += start_size - ctx->compression_strm->dst_size;
+        } else {
+            error = -1;
+            break;
+        }
+        
+        if (ctx->compression_strm->src_size == 0) {
+            int bytes_read = 0;
+            bytes_read = ctx->io->read(ctx->compression_strm, STREAM_BUFFER_SIZE, ctx->io->io_ctx);
+            if (bytes_read < 0) {
+                error = bytes_read;
+                break;
+            }
+            if (bytes_read == 0) {
+                start_size = ctx->compression_strm->dst_size;
+                result = compression_stream_process(ctx->compression_strm, COMPRESSION_STREAM_FINALIZE);
+                if (result == COMPRESSION_STATUS_END) {
+                    bytes_written += start_size - ctx->compression_strm->dst_size;
+                } else {
+                    error = -1;
+                }
+                break;
+            }
+
+            ctx->compression_strm->src_ptr = ctx->strm_buffer;
+            ctx->compression_strm->src_size = bytes_read;
+        }
+        if (bytes_written == len)
+            break;
+    }
+
+    if (error != 0)
+        return error;
+
+    return bytes_written;
+}
+
+#else
 static ssize_t read_st_z(rdata_ctx_t *ctx, void *buffer, size_t len) {
     ssize_t bytes_written = 0;
     int error = 0;
@@ -184,7 +247,9 @@ static ssize_t read_st_lzma(rdata_ctx_t *ctx, void *buffer, size_t len) {
 
     return bytes_written;
 }
-#endif
+#endif /* HAVE_LZMA */
+
+#endif /* HAVE_APPLE_COMPRESSION */
 
 static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
     ssize_t bytes_read = 0;
@@ -192,15 +257,21 @@ static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
     if (len == 0)
         return 0;
 
+#if HAVE_APPLE_COMPRESSION
+    if (ctx->compression_strm) {
+        bytes_read = read_st_compression(ctx, buffer, len);
+    } else
+#else
+    if (ctx->z_strm) {
+        bytes_read = read_st_z(ctx, buffer, len);
+    } else
 #if HAVE_LZMA
     if (ctx->lzma_strm) {
         bytes_read = read_st_lzma(ctx, buffer, len);
     } else
 #endif
-
-    if (ctx->z_strm) {
-        bytes_read = read_st_z(ctx, buffer, len);
-    } else {
+#endif
+    {
         bytes_read = ctx->io->read(buffer, len, ctx->io->io_ctx);
     }
 
@@ -212,9 +283,14 @@ static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
 }
 
 static int lseek_st(rdata_ctx_t *ctx, size_t len) {
-    if (ctx->z_strm
+    if (0
+#if HAVE_APPLE_COMPRESSION
+            || ctx->compression_strm
+#else
+            || ctx->z_strm
 #if HAVE_LZMA
             || ctx->lzma_strm
+#endif
 #endif
             ) {
         int retval = 0;
@@ -235,7 +311,6 @@ static int lseek_st(rdata_ctx_t *ctx, size_t len) {
 
 static rdata_error_t init_z_stream(rdata_ctx_t *ctx) {
     rdata_error_t retval = RDATA_OK;
-    ctx->z_strm = calloc(1, sizeof(z_stream));
     ctx->strm_buffer = malloc(STREAM_BUFFER_SIZE);
     int bytes_read = ctx->io->read(ctx->strm_buffer, STREAM_BUFFER_SIZE, ctx->io->io_ctx);
     if (bytes_read <= 0) {
@@ -243,6 +318,19 @@ static rdata_error_t init_z_stream(rdata_ctx_t *ctx) {
         goto cleanup;
     }
 
+#if HAVE_APPLE_COMPRESSION
+    ctx->compression_strm = calloc(1, sizeof(compression_stream));
+
+    if (compression_stream_init(ctx->compression_strm,
+                COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB) == COMPRESSION_STATUS_ERROR) {
+        retval = RDATA_ERROR_MALLOC;
+        goto cleanup;
+    }
+
+    ctx->compression_strm->src_ptr = ctx->strm_buffer;
+    ctx->compression_strm->src_size = bytes_read;
+#else
+    ctx->z_strm = calloc(1, sizeof(z_stream));
     ctx->z_strm->next_in = ctx->strm_buffer;
     ctx->z_strm->avail_in = bytes_read;
 
@@ -250,31 +338,47 @@ static rdata_error_t init_z_stream(rdata_ctx_t *ctx) {
         retval = RDATA_ERROR_MALLOC;
         goto cleanup;
     }
+#endif
+
 cleanup:
     return retval;
 }
 
-#if HAVE_LZMA
 static rdata_error_t init_lzma_stream(rdata_ctx_t *ctx) {
     rdata_error_t retval = RDATA_OK;
-    ctx->lzma_strm = calloc(1, sizeof(lzma_stream));
     ctx->strm_buffer = malloc(STREAM_BUFFER_SIZE);
-    if (lzma_stream_decoder(ctx->lzma_strm, UINT64_MAX, 0) != LZMA_OK) {
-        retval = RDATA_ERROR_MALLOC;
-        goto cleanup;
-    }
     int bytes_read = ctx->io->read(ctx->strm_buffer, STREAM_BUFFER_SIZE, ctx->io->io_ctx);
     if (bytes_read <= 0) {
         retval = RDATA_ERROR_READ;
         goto cleanup;
     }
 
+#if HAVE_APPLE_COMPRESSION
+    ctx->compression_strm = calloc(1, sizeof(compression_stream));
+
+    if (compression_stream_init(ctx->compression_strm,
+                COMPRESSION_STREAM_DECODE, COMPRESSION_LZMA) == COMPRESSION_STATUS_ERROR) {
+        retval = RDATA_ERROR_MALLOC;
+        goto cleanup;
+    }
+
+    ctx->compression_strm->src_ptr = ctx->strm_buffer;
+    ctx->compression_strm->src_size = bytes_read;
+#elif HAVE_LZMA
+    ctx->lzma_strm = calloc(1, sizeof(lzma_stream));
+
+    if (lzma_stream_decoder(ctx->lzma_strm, UINT64_MAX, 0) != LZMA_OK) {
+        retval = RDATA_ERROR_MALLOC;
+        goto cleanup;
+    }
+
     ctx->lzma_strm->next_in = ctx->strm_buffer;
     ctx->lzma_strm->avail_in = bytes_read;
+#endif
+
 cleanup:
     return retval;
 }
-#endif
 
 static rdata_error_t init_stream(rdata_ctx_t *ctx) {
     rdata_error_t retval = RDATA_OK;
@@ -293,7 +397,7 @@ static rdata_error_t init_stream(rdata_ctx_t *ctx) {
     if (header[0] == '\x1f' && header[1] == '\x8b') {
         return init_z_stream(ctx);
     }
-#if HAVE_LZMA
+#if HAVE_LZMA || HAVE_APPLE_COMPRESSION
     if (strncmp("\xFD" "7zXZ", header, sizeof(header)) == 0) {
         return init_lzma_stream(ctx);
     }
@@ -304,6 +408,13 @@ cleanup:
 }
 
 static rdata_error_t reset_stream(rdata_ctx_t *ctx) {
+#if HAVE_APPLE_COMPRESSION
+    if (ctx->compression_strm) {
+        compression_stream_destroy(ctx->compression_strm);
+        free(ctx->compression_strm);
+        ctx->compression_strm = NULL;
+    }
+#else
     if (ctx->z_strm) {
         inflateEnd(ctx->z_strm);
         free(ctx->z_strm);
@@ -315,6 +426,7 @@ static rdata_error_t reset_stream(rdata_ctx_t *ctx) {
         free(ctx->lzma_strm);
         ctx->lzma_strm = NULL;
     }
+#endif
 #endif
 
     if (ctx->io->seek(0, SEEK_SET, ctx->io->io_ctx) == -1) {
@@ -356,16 +468,23 @@ void free_rdata_ctx(rdata_ctx_t *ctx) {
         }
         free(ctx->atom_table);
     }
+#if HAVE_APPLE_COMPRESSION
+    if (ctx->compression_strm) {
+        compression_stream_destroy(ctx->compression_strm);
+        free(ctx->compression_strm);
+    }
+#else
+    if (ctx->z_strm) {
+        inflateEnd(ctx->z_strm);
+        free(ctx->z_strm);
+    }
 #if HAVE_LZMA
     if (ctx->lzma_strm) {
         lzma_end(ctx->lzma_strm);
         free(ctx->lzma_strm);
     }
 #endif
-    if (ctx->z_strm) {
-        inflateEnd(ctx->z_strm);
-        free(ctx->z_strm);
-    }
+#endif
     if (ctx->strm_buffer) {
         free(ctx->strm_buffer);
     }

@@ -12,29 +12,33 @@ endif
 
 ## common..
 PREFIX=/usr/local
-BASE_LIBS=-L/usr/local/lib -lz
+BASE_LIBS=-L/usr/local/lib
 BASE_CFLAGS=-Os -DHAVE_LZMA=$(HAVE_LZMA) -Wall -Werror -I/usr/local/include -std=c99
 
 ## on macOS ...
 ifeq ($(UNAME), Darwin)
 	CC=clang
-	MIN_OSX=10.10
+	MIN_OSX=10.11
 	DYLIB=librdata.dylib
-	CFLAGS=$(BASE_CFLAGS) -mmacosx-version-min=$(MIN_OSX)
+	CFLAGS=$(BASE_CFLAGS) -mmacosx-version-min=$(MIN_OSX) -DHAVE_APPLE_COMPRESSION=1
 	LFLAGS=-dynamiclib -mmacosx-version-min=$(MIN_OSX)
+	LIBS=$(BASE_LIBS) -lcompression
 endif
+
+ifneq ($(UNAME), Darwin)
+ifeq ($(HAVE_LZMA), 1)
+	LIBS=$(BASE_LIBS) -z -llzma
+else
+	LIBS=$(BASE_LIBS) -z
+endif
+endif
+
 
 ## on Linux ...
 ifeq ($(UNAME), Linux)
 	DYLIB=librdata.so
 	CFLAGS=$(BASE_CFLAGS) -fPIC
 	LFLAGS=-shared
-endif
-
-ifeq ($(HAVE_LZMA), 1)
-	LIBS=$(BASE_LIBS) -llzma
-else
-	LIBS=$(BASE_LIBS)
 endif
 
 
