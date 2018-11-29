@@ -20,7 +20,8 @@ typedef enum rdata_error_e {
     RDATA_ERROR_USER_ABORT,
     RDATA_ERROR_PARSE,
     RDATA_ERROR_WRITE,
-    RDATA_ERROR_FACTOR
+    RDATA_ERROR_FACTOR,
+    RDATA_ERROR_UNSUPPORTED_COMPRESSION
 } rdata_error_t;
 
 typedef enum rdata_file_format_e {

@@ -29,5 +29,8 @@ const char *rdata_error_message(rdata_error_t error_code) {
     if (error_code == RDATA_ERROR_FACTOR)
         return "The provided column does not support factors";
 
+    if (error_code == RDATA_ERROR_UNSUPPORTED_COMPRESSION)
+        return "The file is compressed using an unsupported compression scheme";
+
     return "Unknown error";
 }

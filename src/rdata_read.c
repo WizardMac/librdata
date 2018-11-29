@@ -11,13 +11,15 @@
 
 #if HAVE_APPLE_COMPRESSION
 #include <compression.h>
-#else
+#endif
+
+#if HAVE_ZLIB
 #include <zlib.h>
+#endif
+
 #if HAVE_LZMA
 #include <lzma.h>
 #endif
-#endif
-
 
 #include "rdata.h"
 #include "rdata_internal.h"
@@ -43,11 +45,12 @@ typedef struct rdata_ctx_s {
     void                        *user_ctx;
 #if HAVE_APPLE_COMPRESSION
     compression_stream          *compression_strm;
-#else
+#endif
+#if HAVE_ZLIB
     z_stream                    *z_strm;
+#endif
 #if HAVE_LZMA
     lzma_stream                 *lzma_strm;
-#endif
 #endif
     unsigned char               *strm_buffer;
     rdata_io_t               *io;
@@ -155,8 +158,9 @@ static ssize_t read_st_compression(rdata_ctx_t *ctx, void *buffer, size_t len) {
 
     return bytes_written;
 }
+#endif /* HAVE_APPLE_COMPRESSION */
 
-#else
+#if HAVE_ZLIB
 static ssize_t read_st_z(rdata_ctx_t *ctx, void *buffer, size_t len) {
     ssize_t bytes_written = 0;
     int error = 0;
@@ -201,6 +205,7 @@ static ssize_t read_st_z(rdata_ctx_t *ctx, void *buffer, size_t len) {
 
     return bytes_written;
 }
+#endif /* HAVE_ZLIB */
 
 #if HAVE_LZMA
 static ssize_t read_st_lzma(rdata_ctx_t *ctx, void *buffer, size_t len) {
@@ -249,8 +254,6 @@ static ssize_t read_st_lzma(rdata_ctx_t *ctx, void *buffer, size_t len) {
 }
 #endif /* HAVE_LZMA */
 
-#endif /* HAVE_APPLE_COMPRESSION */
-
 static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
     ssize_t bytes_read = 0;
 
@@ -261,15 +264,16 @@ static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
     if (ctx->compression_strm) {
         bytes_read = read_st_compression(ctx, buffer, len);
     } else
-#else
+#endif
+#if HAVE_ZLIB
     if (ctx->z_strm) {
         bytes_read = read_st_z(ctx, buffer, len);
     } else
+#endif
 #if HAVE_LZMA
     if (ctx->lzma_strm) {
         bytes_read = read_st_lzma(ctx, buffer, len);
     } else
-#endif
 #endif
     {
         bytes_read = ctx->io->read(buffer, len, ctx->io->io_ctx);
@@ -286,11 +290,12 @@ static int lseek_st(rdata_ctx_t *ctx, size_t len) {
     if (0
 #if HAVE_APPLE_COMPRESSION
             || ctx->compression_strm
-#else
+#endif
+#if HAVE_ZLIB
             || ctx->z_strm
+#endif
 #if HAVE_LZMA
             || ctx->lzma_strm
-#endif
 #endif
             ) {
         int retval = 0;
@@ -329,7 +334,7 @@ static rdata_error_t init_z_stream(rdata_ctx_t *ctx) {
 
     ctx->compression_strm->src_ptr = ctx->strm_buffer;
     ctx->compression_strm->src_size = bytes_read;
-#else
+#elif HAVE_ZLIB
     ctx->z_strm = calloc(1, sizeof(z_stream));
     ctx->z_strm->next_in = ctx->strm_buffer;
     ctx->z_strm->avail_in = bytes_read;
@@ -338,6 +343,9 @@ static rdata_error_t init_z_stream(rdata_ctx_t *ctx) {
         retval = RDATA_ERROR_MALLOC;
         goto cleanup;
     }
+#else
+    retval = RDATA_ERROR_UNSUPPORTED_COMPRESSION;
+    goto cleanup;
 #endif
 
 cleanup:
@@ -374,6 +382,9 @@ static rdata_error_t init_lzma_stream(rdata_ctx_t *ctx) {
 
     ctx->lzma_strm->next_in = ctx->strm_buffer;
     ctx->lzma_strm->avail_in = bytes_read;
+#else
+    retval = RDATA_ERROR_UNSUPPORTED_COMPRESSION;
+    goto cleanup;
 #endif
 
 cleanup:
@@ -397,11 +408,9 @@ static rdata_error_t init_stream(rdata_ctx_t *ctx) {
     if (header[0] == '\x1f' && header[1] == '\x8b') {
         return init_z_stream(ctx);
     }
-#if HAVE_LZMA || HAVE_APPLE_COMPRESSION
     if (strncmp("\xFD" "7zXZ", header, sizeof(header)) == 0) {
         return init_lzma_stream(ctx);
     }
-#endif
 
 cleanup:
     return retval;
@@ -414,19 +423,20 @@ static rdata_error_t reset_stream(rdata_ctx_t *ctx) {
         free(ctx->compression_strm);
         ctx->compression_strm = NULL;
     }
-#else
+#endif
+#if HAVE_ZLIB
     if (ctx->z_strm) {
         inflateEnd(ctx->z_strm);
         free(ctx->z_strm);
         ctx->z_strm = NULL;
     }
+#endif
 #if HAVE_LZMA
     if (ctx->lzma_strm) {
         lzma_end(ctx->lzma_strm);
         free(ctx->lzma_strm);
         ctx->lzma_strm = NULL;
     }
-#endif
 #endif
 
     if (ctx->io->seek(0, SEEK_SET, ctx->io->io_ctx) == -1) {
@@ -473,17 +483,18 @@ void free_rdata_ctx(rdata_ctx_t *ctx) {
         compression_stream_destroy(ctx->compression_strm);
         free(ctx->compression_strm);
     }
-#else
+#endif
+#if HAVE_ZLIB
     if (ctx->z_strm) {
         inflateEnd(ctx->z_strm);
         free(ctx->z_strm);
     }
+#endif
 #if HAVE_LZMA
     if (ctx->lzma_strm) {
         lzma_end(ctx->lzma_strm);
         free(ctx->lzma_strm);
     }
-#endif
 #endif
     if (ctx->strm_buffer) {
         free(ctx->strm_buffer);
