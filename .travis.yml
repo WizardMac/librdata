@@ -3,5 +3,9 @@ os:
   - linux
   - osx
 
+before_script:
+  - ./autogen.sh
+
 script:
+  - ./configure
   - make
