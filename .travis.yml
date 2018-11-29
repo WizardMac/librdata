@@ -3,6 +3,10 @@ os:
   - linux
   - osx
 
+compiler:
+  - clang
+  - gcc
+
 before_script:
   - ./autogen.sh
 
