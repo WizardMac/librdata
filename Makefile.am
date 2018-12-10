@@ -12,6 +12,11 @@ librdata_la_SOURCES = \
 librdata_la_LIBADD =
 librdata_la_CFLAGS =
 
+if HAVE_BZIP2
+librdata_la_LIBADD += -lbz2
+librdata_la_CFLAGS += -DHAVE_BZIP2
+endif
+
 if HAVE_APPLE_COMPRESSION
 librdata_la_LIBADD += -lcompression
 librdata_la_CFLAGS += -DHAVE_APPLE_COMPRESSION=1

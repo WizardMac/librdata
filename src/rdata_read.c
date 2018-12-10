@@ -9,6 +9,10 @@
 #include <stdio.h>
 #include <math.h>
 
+#if HAVE_BZIP2
+#include <bzlib.h>
+#endif
+
 #if HAVE_APPLE_COMPRESSION
 #include <compression.h>
 #endif
@@ -43,6 +47,9 @@ typedef struct rdata_ctx_s {
     rdata_text_value_handler     value_label_handler;
     rdata_error_handler       error_handler;
     void                        *user_ctx;
+#if HAVE_BZIP2
+    bz_stream                   *bz_strm;
+#endif
 #if HAVE_APPLE_COMPRESSION
     compression_stream          *compression_strm;
 #endif
@@ -52,7 +59,7 @@ typedef struct rdata_ctx_s {
 #if HAVE_LZMA
     lzma_stream                 *lzma_strm;
 #endif
-    unsigned char               *strm_buffer;
+    void                        *strm_buffer;
     rdata_io_t               *io;
     size_t                       bytes_read;
     
@@ -105,6 +112,55 @@ static char *atom_table_lookup(rdata_atom_table_t *table, int index) {
     }
     return &table->data[(index-1)*RDATA_ATOM_LEN];
 }
+
+#if HAVE_BZIP2
+static ssize_t read_st_bzip2(rdata_ctx_t *ctx, void *buffer, size_t len) {
+    ssize_t bytes_written = 0;
+    int error = 0;
+    int result = BZ_OK;
+    while (1) {
+        ssize_t start_out = ctx->bz_strm->total_out_lo32 + 
+            ((long)ctx->bz_strm->total_out_hi32 << 32);
+
+        ctx->bz_strm->next_out = (char *)buffer + bytes_written;
+        ctx->bz_strm->avail_out = len - bytes_written;
+
+        result = BZ2_bzDecompress(ctx->bz_strm);
+
+        if (result != BZ_OK && result != BZ_STREAM_END) {
+            error = -1;
+            break;
+        }
+
+        bytes_written += ctx->bz_strm->total_out_lo32 + 
+            ((long)ctx->bz_strm->total_out_hi32 << 32) - start_out;
+        
+        if (result == BZ_STREAM_END)
+            break;
+
+        if (ctx->bz_strm->avail_in == 0) {
+            int bytes_read = 0;
+            bytes_read = ctx->io->read(ctx->strm_buffer, STREAM_BUFFER_SIZE, ctx->io->io_ctx);
+            if (bytes_read < 0) {
+                error = bytes_read;
+                break;
+            }
+            if (bytes_read == 0)
+                break;
+
+            ctx->bz_strm->next_in = ctx->strm_buffer;
+            ctx->bz_strm->avail_in = bytes_read;
+        }
+        if (bytes_written == len)
+            break;
+    }
+
+    if (error != 0)
+        return error;
+
+    return bytes_written;
+}
+#endif /* HAVE_BZIP2 */
 
 #if HAVE_APPLE_COMPRESSION
 static ssize_t read_st_compression(rdata_ctx_t *ctx, void *buffer, size_t len) {
@@ -260,6 +316,11 @@ static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
     if (len == 0)
         return 0;
 
+#if HAVE_BZIP2
+    if (ctx->bz_strm) {
+        bytes_read = read_st_bzip2(ctx, buffer, len);
+    } else
+#endif
 #if HAVE_APPLE_COMPRESSION
     if (ctx->compression_strm) {
         bytes_read = read_st_compression(ctx, buffer, len);
@@ -288,6 +349,9 @@ static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
 
 static int lseek_st(rdata_ctx_t *ctx, size_t len) {
     if (0
+#if HAVE_BZIP2
+            || ctx->bz_strm
+#endif
 #if HAVE_APPLE_COMPRESSION
             || ctx->compression_strm
 #endif
@@ -312,6 +376,33 @@ static int lseek_st(rdata_ctx_t *ctx, size_t len) {
     }
 
     return ctx->io->seek(len, SEEK_CUR, ctx->io->io_ctx);
+}
+
+static rdata_error_t init_bz_stream(rdata_ctx_t *ctx) {
+    rdata_error_t retval = RDATA_OK;
+    ctx->strm_buffer = malloc(STREAM_BUFFER_SIZE);
+    int bytes_read = ctx->io->read(ctx->strm_buffer, STREAM_BUFFER_SIZE, ctx->io->io_ctx);
+    if (bytes_read <= 0) {
+        retval = RDATA_ERROR_READ;
+        goto cleanup;
+    }
+
+#if HAVE_BZIP2
+    ctx->bz_strm = calloc(1, sizeof(bz_stream));
+    ctx->bz_strm->next_in = ctx->strm_buffer;
+    ctx->bz_strm->avail_in = bytes_read;
+
+    if (BZ2_bzDecompressInit(ctx->bz_strm, 0, 0) != BZ_OK) {
+        retval = RDATA_ERROR_MALLOC;
+        goto cleanup;
+    }
+#else
+    retval = RDATA_ERROR_UNSUPPORTED_COMPRESSION;
+    goto cleanup;
+#endif
+
+cleanup:
+    return retval;
 }
 
 static rdata_error_t init_z_stream(rdata_ctx_t *ctx) {
@@ -405,6 +496,10 @@ static rdata_error_t init_stream(rdata_ctx_t *ctx) {
         goto cleanup;
     }
 
+    if (header[0] == 'B' && header[1] == 'Z' && header[2] == 'h' &&
+            header[3] >= '0' && header[3] <= '9') {
+        return init_bz_stream(ctx);
+    }
     if (header[0] == '\x1f' && header[1] == '\x8b') {
         return init_z_stream(ctx);
     }
@@ -417,6 +512,13 @@ cleanup:
 }
 
 static rdata_error_t reset_stream(rdata_ctx_t *ctx) {
+#if HAVE_BZIP2
+    if (ctx->bz_strm) {
+        BZ2_bzDecompressEnd(ctx->bz_strm);
+        free(ctx->bz_strm);
+        ctx->bz_strm = NULL;
+    }
+#endif
 #if HAVE_APPLE_COMPRESSION
     if (ctx->compression_strm) {
         compression_stream_destroy(ctx->compression_strm);
@@ -478,6 +580,12 @@ void free_rdata_ctx(rdata_ctx_t *ctx) {
         }
         free(ctx->atom_table);
     }
+#if HAVE_BZIP2
+    if (ctx->bz_strm) {
+        BZ2_bzDecompressEnd(ctx->bz_strm);
+        free(ctx->bz_strm);
+    }
+#endif
 #if HAVE_APPLE_COMPRESSION
     if (ctx->compression_strm) {
         compression_stream_destroy(ctx->compression_strm);

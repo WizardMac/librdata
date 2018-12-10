@@ -20,6 +20,9 @@ AS_CASE([$host],
     [EXTRA_WARNINGS=""])
 AC_SUBST([EXTRA_WARNINGS])
 
+AC_CHECK_LIB([bz2], [BZ2_bzCompressInit], [true], [false])
+AM_CONDITIONAL([HAVE_BZIP2], test "$ac_cv_lib_bz2_BZ2_bzCompressInit" = yes)
+
 AC_CHECK_LIB([compression], [compression_stream_init], [true], [false])
 AM_CONDITIONAL([HAVE_APPLE_COMPRESSION], test "$ac_cv_lib_compression_compression_stream_init" = yes)
 
