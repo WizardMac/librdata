@@ -7,7 +7,7 @@ is a small C library for reading and writing R data frames.
 Features:
 
 * Read both RData and RDS formats
-* Read compressed files (requires zlib and lzma)
+* Read compressed files (requires bzip2, zlib, and lzma)
 * Write factors, timestamps, logical vectors, and more
 
 ## Read API
