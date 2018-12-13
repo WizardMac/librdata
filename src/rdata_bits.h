@@ -3,7 +3,7 @@
 //
 
 
-int machine_is_little_endian();
+int machine_is_little_endian(void);
 
 uint16_t byteswap2(uint16_t num);
 uint32_t byteswap4(uint32_t num);

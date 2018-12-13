@@ -10,7 +10,7 @@ librdata_la_SOURCES = \
 	src/rdata_write.c
 
 librdata_la_LIBADD =
-librdata_la_CFLAGS =
+librdata_la_CFLAGS = -Wall -Wstrict-prototypes
 
 if HAVE_BZIP2
 librdata_la_LIBADD += -lbz2

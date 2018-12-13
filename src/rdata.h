@@ -79,7 +79,7 @@ typedef struct rdata_parser_s {
     rdata_io_t                 *io;
 } rdata_parser_t;
 
-rdata_parser_t *rdata_parser_init();
+rdata_parser_t *rdata_parser_init(void);
 void rdata_parser_free(rdata_parser_t *parser);
 
 rdata_error_t rdata_set_table_handler(rdata_parser_t *parser, rdata_table_handler table_handler);
