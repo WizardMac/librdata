@@ -17,15 +17,15 @@ librdata_la_LIBADD += -lbz2
 librdata_la_CFLAGS += -DHAVE_BZIP2
 endif
 
-if HAVE_APPLE_COMPRESSION
-librdata_la_LIBADD += -lcompression
-librdata_la_CFLAGS += -DHAVE_APPLE_COMPRESSION=1
-else
 if HAVE_ZLIB
 librdata_la_LIBADD += -lz
 librdata_la_CFLAGS += -DHAVE_ZLIB=1
 endif
 
+if HAVE_APPLE_COMPRESSION
+librdata_la_LIBADD += -lcompression
+librdata_la_CFLAGS += -DHAVE_APPLE_COMPRESSION=1
+else
 if HAVE_LZMA
 librdata_la_LIBADD += -llzma
 librdata_la_CFLAGS += -DHAVE_LZMA=1
