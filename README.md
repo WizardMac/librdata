@@ -10,6 +10,19 @@ Features:
 * Read compressed files (requires bzip2, zlib, and lzma)
 * Write factors, timestamps, logical vectors, and more
 
+## Installation
+
+```
+./autogen.sh
+./configure
+make
+make install
+```
+
+## Language bindings
+
+* Python: [pyreadr](https://github.com/ofajardo/pyreadr)
+
 ## Read API
 
 Example usage:
@@ -61,7 +74,7 @@ rdata_set_value_label_handler(parser, &handle_value_label);
 rdata_parse(parser, "/path/to/something.rdata", NULL);
 ```
 
-See `rdata.h` for the full API.
+See [`rdata.h`](src/rdata.h) for the full API.
 
 ## Write API
 
@@ -104,4 +117,4 @@ close(fd);
 
 ```
 
-See `rdata.h` for the full API.
+See [`rdata.h`](src/rdata.h) for the full API.
