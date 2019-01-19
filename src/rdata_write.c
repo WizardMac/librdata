@@ -131,10 +131,7 @@ static rdata_error_t rdata_write_string(rdata_writer_t *writer, const char *stri
     if (retval != RDATA_OK)
         goto cleanup;
 
-    ssize_t len = -1;
-    if (string == NULL) {
-        len = strlen(string);
-    }
+    ssize_t len = string ? strlen(string) : -1;
     
     retval = rdata_write_integer(writer, len);
     if (retval != RDATA_OK)
