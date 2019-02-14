@@ -38,7 +38,20 @@ noinst_HEADERS = \
 	 src/CKHashTable.h \
 	 src/rdata_bits.h \
 	 src/rdata_internal.h \
-	 src/rdata_io_unistd.h
+	 src/rdata_io_unistd.h \
+	 src/test/test_buffer.h \
+	 src/test/test_buffer_io.h
+
+check_PROGRAMS = test_rdata
+
+test_rdata_SOURCES = \
+     src/test/test_buffer.c \
+     src/test/test_buffer_io.c \
+     src/test/test_rdata.c
+
+test_rdata_LDADD = librdata.la
+
+TESTS = test_rdata
 
 if HAVE_FUZZER
 noinst_PROGRAMS = fuzz_rdata
