@@ -2,13 +2,12 @@ AC_INIT([rdata], [0.1.0-prerelease])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AM_SILENT_RULES([yes])
 
-AC_SUBST([READSTAT_VERSION], [0.1.0-prerelease])
+AC_SUBST([LIBRDATA_VERSION], [0.1.0-prerelease])
 
 LT_INIT([disable-static])
 
 AC_PROG_CC
 
-AC_ARG_ENABLE([static-iconv], AS_HELP_STRING([--enable-static-iconv], [Link iconv statically]), [static_iconv=yes], [static_iconv=no])
 AC_ARG_ENABLE([code-coverage], AS_HELP_STRING([--enable-code-coverage], [Enable code coverage profiling]), [code_coverage=yes], [code_coverage=no])
 AC_ARG_ENABLE([sanitizers], AS_HELP_STRING([--enable-sanitizers], [Enable address sanitizing]),
     [SANITIZERS="-fsanitize=address,bool,float-cast-overflow,integer-divide-by-zero,return,returns-nonnull-attribute,shift-exponent,signed-integer-overflow,unreachable,vla-bound -fsanitize-coverage=trace-pc-guard,indirect-calls,trace-cmp"], [SANITIZERS=""])
@@ -19,6 +18,11 @@ AS_CASE([$host],
 	[*mingw*], [EXTRA_WARNINGS="-Wno-pedantic-ms-format -Wno-stringop-truncation"],
     [EXTRA_WARNINGS=""])
 AC_SUBST([EXTRA_WARNINGS])
+
+AS_CASE([$host],
+    [*mingw*|*cygwin*], [EXTRA_LDFLAGS="-no-undefined"],
+    [EXTRA_LDFLAGS=""])
+AC_SUBST([EXTRA_LDFLAGS])
 
 AC_CHECK_LIB([bz2], [BZ2_bzCompressInit], [true], [false])
 AM_CONDITIONAL([HAVE_BZIP2], test "$ac_cv_lib_bz2_BZ2_bzCompressInit" = yes)

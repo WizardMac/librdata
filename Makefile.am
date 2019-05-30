@@ -1,3 +1,5 @@
+AUTOMAKE_OPTIONS = foreign dist-zip
+
 lib_LTLIBRARIES = librdata.la
 
 librdata_la_SOURCES = \
@@ -11,6 +13,7 @@ librdata_la_SOURCES = \
 
 librdata_la_LIBADD =
 librdata_la_CFLAGS = -Wall -Wstrict-prototypes
+librdata_la_LDFLAGS = @EXTRA_LDFLAGS@
 
 if HAVE_BZIP2
 librdata_la_LIBADD += -lbz2
