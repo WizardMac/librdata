@@ -121,7 +121,7 @@ static ssize_t read_st_bzip2(rdata_ctx_t *ctx, void *buffer, size_t len) {
     int result = BZ_OK;
     while (1) {
         ssize_t start_out = ctx->bz_strm->total_out_lo32 + 
-            ((long)ctx->bz_strm->total_out_hi32 << 32);
+            ((ssize_t)ctx->bz_strm->total_out_hi32 << 32LL);
 
         ctx->bz_strm->next_out = (char *)buffer + bytes_written;
         ctx->bz_strm->avail_out = len - bytes_written;
@@ -134,7 +134,7 @@ static ssize_t read_st_bzip2(rdata_ctx_t *ctx, void *buffer, size_t len) {
         }
 
         bytes_written += ctx->bz_strm->total_out_lo32 + 
-            ((long)ctx->bz_strm->total_out_hi32 << 32) - start_out;
+            ((ssize_t)ctx->bz_strm->total_out_hi32 << 32LL) - start_out;
         
         if (result == BZ_STREAM_END)
             break;
