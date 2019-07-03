@@ -65,7 +65,7 @@ typedef struct rdata_ctx_s {
     size_t                       bytes_read;
     
     rdata_atom_table_t          *atom_table;
-    int                          class_is_posixct;
+    int                          class_is_date_or_posixct;	// 1 is posixct, 2 is date
 } rdata_ctx_t;
 
 static int atom_table_add(rdata_atom_table_t *table, char *key);
@@ -832,8 +832,10 @@ cleanup:
 }
 
 static int handle_class_name(const char *buf, int i, void *ctx) {
-    int *class_is_posixct = (int *)ctx;
-    *class_is_posixct |= (buf != NULL && strcmp(buf, "POSIXct") == 0);
+    int *class_is_date_or_posixct = (int *)ctx;
+    *class_is_date_or_posixct |= (buf != NULL && strcmp(buf, "POSIXct") == 0);
+	// check if buf is "Date" as well
+	*class_is_date_or_posixct |= (buf != NULL && strcmp(buf, "Date") == 0) << 1;
     return RDATA_OK;
 }
 
@@ -842,8 +844,8 @@ static int handle_vector_attribute(char *key, rdata_sexptype_info_t val_info, rd
     if (strcmp(key, "levels") == 0) {
         retval = read_string_vector(val_info.header.attributes, ctx->value_label_handler, ctx->user_ctx, ctx);
     } else if (strcmp(key, "class") == 0) {
-        ctx->class_is_posixct = 0;
-        retval = read_string_vector(val_info.header.attributes, &handle_class_name, &ctx->class_is_posixct, ctx);
+        ctx->class_is_date_or_posixct = 0;
+        retval = read_string_vector(val_info.header.attributes, &handle_class_name, &ctx->class_is_date_or_posixct, ctx);
     } else {
         retval = recursive_discard(val_info.header, ctx);
     }
@@ -1129,13 +1131,15 @@ static rdata_error_t read_value_vector(rdata_sexptype_header_t header, const cha
         }
     }
     
-    ctx->class_is_posixct = 0;
+    ctx->class_is_date_or_posixct = 0;
     if (header.attributes) {
         if ((retval = read_attributes(&handle_vector_attribute, ctx)) != RDATA_OK)
             goto cleanup;
     }
-    if (ctx->class_is_posixct)
-        output_data_type = RDATA_TYPE_TIMESTAMP;
+	if (ctx->class_is_date_or_posixct == 1)
+		output_data_type = RDATA_TYPE_TIMESTAMP;
+	else if (ctx->class_is_date_or_posixct == 2)
+		output_data_type = RDATA_TYPE_DATE;
     
     if (ctx->column_handler) {
         if (ctx->column_handler(name, output_data_type, vals, length, ctx->user_ctx)) {
