@@ -13,6 +13,8 @@ AC_ARG_ENABLE([sanitizers], AS_HELP_STRING([--enable-sanitizers], [Enable addres
     [SANITIZERS="-fsanitize=address,bool,float-cast-overflow,integer-divide-by-zero,return,returns-nonnull-attribute,shift-exponent,signed-integer-overflow,unreachable,vla-bound -fsanitize-coverage=trace-pc-guard,indirect-calls,trace-cmp"], [SANITIZERS=""])
 AC_SUBST([SANITIZERS])
 
+AM_ICONV
+
 AC_CANONICAL_HOST
 AS_CASE([$host],
 	[*mingw*], [EXTRA_WARNINGS="-Wno-pedantic-ms-format -Wno-stringop-truncation"],
@@ -20,8 +22,8 @@ AS_CASE([$host],
 AC_SUBST([EXTRA_WARNINGS])
 
 AS_CASE([$host],
-    [*mingw*|*cygwin*], [EXTRA_LDFLAGS="-no-undefined"],
-    [EXTRA_LDFLAGS=""])
+    [*mingw*|*cygwin*], [EXTRA_LDFLAGS="$LTLIBICONV -no-undefined"],
+    [EXTRA_LDFLAGS="$LTLIBICONV"])
 AC_SUBST([EXTRA_LDFLAGS])
 
 AC_CHECK_LIB([bz2], [BZ2_bzCompressInit], [true], [false])
