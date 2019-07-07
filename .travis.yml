@@ -13,7 +13,7 @@ addons:
     - gettext
 
 before_script:
-  - ./autogen.sh
+  - ./.travis/autogen.sh
 
 script:
   - ./configure
