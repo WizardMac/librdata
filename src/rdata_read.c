@@ -628,7 +628,7 @@ rdata_error_t rdata_parse(rdata_parser_t *parser, const char *filename, void *us
         retval = RDATA_ERROR_READ;
         goto cleanup;
     }
-    if (strncmp("RDX2\n", header_line, sizeof(header_line)) == 0) {
+    if (memcmp("RDX", header_line, 3) == 0 && header_line[4] == '\n') {
         is_rdata = 1;
     } else {
         reset_stream(ctx);
@@ -643,6 +643,19 @@ rdata_error_t rdata_parse(rdata_parser_t *parser, const char *filename, void *us
         v2_header.format_version = byteswap4(v2_header.format_version);
         v2_header.writer_version = byteswap4(v2_header.writer_version);
         v2_header.reader_version = byteswap4(v2_header.reader_version);
+    }
+
+    if (is_rdata && v2_header.format_version != header_line[3] - '0') {
+        retval = RDATA_ERROR_PARSE;
+        goto cleanup;
+    }
+
+    if (v2_header.format_version == 3) {
+        char encoding[64];
+        retval = read_character_string(encoding, sizeof(encoding), ctx);
+        if (retval != RDATA_OK)
+            goto cleanup;
+        /* TODO recode unmarked strings with this source encoding */
     }
     
     if (is_rdata) {
