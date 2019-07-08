@@ -11,6 +11,10 @@
 #include "test_buffer.h"
 #include "test_buffer_io.h"
 
+#ifdef _WIN32
+#define timegm _mkgmtime
+#endif
+
 typedef struct test_rdata_ctx_s {
     int column_count;
     int row_count;
