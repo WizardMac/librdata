@@ -13,6 +13,10 @@
 
 #define INITIAL_COLUMNS_CAPACITY    100
 
+#ifdef _WIN32
+#define timegm _mkgmtime
+#endif
+
 rdata_writer_t *rdata_writer_init(rdata_data_writer write_callback, rdata_file_format_t format) {
     rdata_writer_t *writer = calloc(1, sizeof(rdata_writer_t));
     writer->file_format = format;
