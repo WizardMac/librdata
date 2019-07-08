@@ -548,6 +548,32 @@ static rdata_error_t reset_stream(rdata_ctx_t *ctx) {
     return init_stream(ctx);
 }
 
+static rdata_error_t rdata_convert(char *dst, size_t dst_len, const char *src, size_t src_len, iconv_t converter) {
+    if (dst_len == 0) {
+        return RDATA_ERROR_CONVERT_LONG_STRING;
+    } else if (converter) {
+        size_t dst_left = dst_len - 1;
+        char *dst_end = dst;
+        size_t status = iconv(converter, (ICONV_CONST char **)&src, &src_len, &dst_end, &dst_left);
+        if (status == (size_t)-1) {
+            if (errno == E2BIG) {
+                return RDATA_ERROR_CONVERT_LONG_STRING;
+            } else if (errno == EILSEQ) {
+                return RDATA_ERROR_CONVERT_BAD_STRING;
+            } else if (errno != EINVAL) { /* EINVAL indicates improper truncation; accept it */
+                return RDATA_ERROR_CONVERT;
+            }
+        }
+        dst[dst_len - dst_left - 1] = '\0';
+    } else if (src_len + 1 > dst_len) {
+        return RDATA_ERROR_CONVERT_LONG_STRING;
+    } else {
+        memcpy(dst, src, src_len);
+        dst[src_len] = '\0';
+    }
+    return RDATA_OK;
+}
+
 rdata_ctx_t *rdata_ctx_init(rdata_io_t *io, const char *filename) {
     int fd = io->open(filename, io->io_ctx);
     if (fd == -1) {
@@ -886,6 +912,7 @@ static int handle_vector_attribute(char *key, rdata_sexptype_info_t val_info, rd
 
 static rdata_error_t read_character_string(char *key, size_t keylen, rdata_ctx_t *ctx) {
     uint32_t length;
+    char *string = NULL;
     rdata_error_t retval = RDATA_OK;
     
     if (read_st(ctx, &length, sizeof(length)) != sizeof(length)) {
@@ -896,24 +923,32 @@ static rdata_error_t read_character_string(char *key, size_t keylen, rdata_ctx_t
     if (ctx->machine_needs_byteswap)
         length = byteswap4(length);
     
-    if (length == -1) {
+    if (length == -1 || length == 0) {
         key[0] = '\0';
-        return 0;
+        return RDATA_OK;
     }
-    
-    if (length + 1 > keylen) {
-        retval = RDATA_ERROR_PARSE;
+
+    if (length < 0) {
+        return RDATA_ERROR_PARSE;
+    }
+
+    if ((string = rdata_malloc(length)) == NULL) {
+        retval = RDATA_ERROR_MALLOC;
         goto cleanup;
     }
-    
-    if (read_st(ctx, key, length) != length) {
+
+    if (read_st(ctx, string, length) != length) {
         retval = RDATA_ERROR_READ;
         goto cleanup;
     }
-    
-    key[length] = '\0';
 
+    retval = rdata_convert(key, keylen, string, length, ctx->converter);
+    if (retval != RDATA_OK)
+        goto cleanup;
+    
 cleanup:
+    if (string)
+        free(string);
     
     return retval;
 }
@@ -1030,32 +1065,6 @@ static rdata_error_t read_length(int32_t *outLength, rdata_ctx_t *ctx) {
 cleanup:
     
     return retval;
-}
-
-static rdata_error_t rdata_convert(char *dst, size_t dst_len, const char *src, size_t src_len, iconv_t converter) {
-    if (dst_len == 0) {
-        return RDATA_ERROR_CONVERT_LONG_STRING;
-    } else if (converter) {
-        size_t dst_left = dst_len - 1;
-        char *dst_end = dst;
-        size_t status = iconv(converter, (ICONV_CONST char **)&src, &src_len, &dst_end, &dst_left);
-        if (status == (size_t)-1) {
-            if (errno == E2BIG) {
-                return RDATA_ERROR_CONVERT_LONG_STRING;
-            } else if (errno == EILSEQ) {
-                return RDATA_ERROR_CONVERT_BAD_STRING;
-            } else if (errno != EINVAL) { /* EINVAL indicates improper truncation; accept it */
-                return RDATA_ERROR_CONVERT;
-            }
-        }
-        dst[dst_len - dst_left - 1] = '\0';
-    } else if (src_len + 1 > dst_len) {
-        return RDATA_ERROR_CONVERT_LONG_STRING;
-    } else {
-        memcpy(dst, src, src_len);
-        dst[src_len] = '\0';
-    }
-    return RDATA_OK;
 }
 
 static rdata_error_t read_string_vector_n(int attributes, int32_t length,
