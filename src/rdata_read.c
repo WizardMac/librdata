@@ -33,6 +33,9 @@
 
 #define RDATA_ATOM_LEN 128
 
+#define RDATA_CLASS_POSIXCT 0x01
+#define RDATA_CLASS_DATE    0x02
+
 #define STREAM_BUFFER_SIZE   65536
 #define MAX_BUFFER_SIZE      UINT_MAX
 
@@ -74,7 +77,7 @@ typedef struct rdata_ctx_s {
     size_t                       bytes_read;
     
     rdata_atom_table_t          *atom_table;
-    int                          class_is_posixct;
+    unsigned int                 column_class;
 
     iconv_t                      converter;
 } rdata_ctx_t;
@@ -892,8 +895,15 @@ cleanup:
 }
 
 static int handle_class_name(const char *buf, int i, void *ctx) {
-    int *class_is_posixct = (int *)ctx;
-    *class_is_posixct |= (buf != NULL && strcmp(buf, "POSIXct") == 0);
+    unsigned int *column_class = (unsigned int *)ctx;
+    if (buf) {
+        if (strcmp(buf, "POSIXct") == 0) {
+            *column_class |= RDATA_CLASS_POSIXCT;
+        }
+        if (strcmp(buf, "Date") == 0) {
+            *column_class |= RDATA_CLASS_DATE;
+        }
+    }
     return RDATA_OK;
 }
 
@@ -902,8 +912,8 @@ static int handle_vector_attribute(char *key, rdata_sexptype_info_t val_info, rd
     if (strcmp(key, "levels") == 0) {
         retval = read_string_vector(val_info.header.attributes, ctx->value_label_handler, ctx->user_ctx, ctx);
     } else if (strcmp(key, "class") == 0) {
-        ctx->class_is_posixct = 0;
-        retval = read_string_vector(val_info.header.attributes, &handle_class_name, &ctx->class_is_posixct, ctx);
+        ctx->column_class = 0;
+        retval = read_string_vector(val_info.header.attributes, &handle_class_name, &ctx->column_class, ctx);
     } else {
         retval = recursive_discard(val_info.header, ctx);
     }
@@ -1223,13 +1233,15 @@ static rdata_error_t read_value_vector(rdata_sexptype_header_t header, const cha
         }
     }
     
-    ctx->class_is_posixct = 0;
+    ctx->column_class = 0;
     if (header.attributes) {
         if ((retval = read_attributes(&handle_vector_attribute, ctx)) != RDATA_OK)
             goto cleanup;
     }
-    if (ctx->class_is_posixct)
+    if (ctx->column_class == RDATA_CLASS_POSIXCT)
         output_data_type = RDATA_TYPE_TIMESTAMP;
+    if (ctx->column_class == RDATA_CLASS_DATE)
+        output_data_type = RDATA_TYPE_DATE;
     
     if (ctx->column_handler) {
         if (ctx->column_handler(name, output_data_type, vals, length, ctx->user_ctx)) {

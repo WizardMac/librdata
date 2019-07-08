@@ -16,6 +16,7 @@ typedef struct test_rdata_ctx_s {
     int row_count;
     const char *table_name;
     time_t timestamp;
+    struct tm date;
 } test_rdata_ctx_t;
 
 static void handle_error(const char *error_message, void *ctx) {
@@ -45,6 +46,8 @@ static int handle_column_name(const char *name, int index, void *ctx) {
         return strcmp(name, "column2");
     if (index == 2)
         return strcmp(name, "column3");
+    if (index == 3)
+        return strcmp(name, "column4");
 
     return 1;
 }
@@ -60,6 +63,9 @@ static int handle_column(const char *name, rdata_type_t type,
     } else if (name != NULL && strcmp(name, "column3") == 0) {
         if (type != RDATA_TYPE_TIMESTAMP)
             return 1;
+    } else if (name != NULL && strcmp(name, "column4") == 0) {
+        if (type != RDATA_TYPE_DATE)
+            return 1;
     } else if (name != NULL) {
         return 1;
     }
@@ -74,27 +80,36 @@ static int handle_column(const char *name, rdata_type_t type,
         return 1;
     }
 
-    if (name != NULL && strcmp(name, "column1") == 0) {
+    if (type == RDATA_TYPE_REAL) {
         if (dp[0] != 0.0) {
-            printf("Unexpected value[0]: %lf\n", dp[0]);
+            printf("Unexpected real value[0]: %lf\n", dp[0]);
             return 1;
         }
 
         if (dp[1] != 100.0) {
-            printf("Unexpected value[1]: %lf\n", dp[1]);
+            printf("Unexpected real value[1]: %lf\n", dp[1]);
             return 1;
         }
 
         if (!isnan(dp[2])) {
-            printf("Unexpected value[2]: %lf\n", dp[2]);
+            printf("Unexpected real value[2]: %lf\n", dp[2]);
             return 1;
         }
     }
-    if (name != NULL && strcmp(name, "column3") == 0) {
+    if (type == RDATA_TYPE_TIMESTAMP) {
         int i;
         for (i=0; i<3; i++) {
             if (dp[i] != test_ctx->timestamp) {
-                printf("Unexpected value[%d]: %lf\n", i, dp[i]);
+                printf("Unexpected timestamp value[%d]: %lf\n", i, dp[i]);
+                return 1;
+            }
+        }
+    }
+    if (type == RDATA_TYPE_DATE) {
+        int i;
+        for (i=0; i<3; i++) {
+            if (dp[i] * 86400 != timegm(&test_ctx->date)) {
+                printf("Unexpected date value[%d]: %lf\n", i, dp[i]);
                 return 1;
             }
         }
@@ -118,12 +133,14 @@ int main(int argc, char *argv[]) {
     struct timeval time;
     gettimeofday(&time, NULL);
 
-    test_rdata_ctx_t ctx = { .row_count = 3, .table_name = "table1", .timestamp = time.tv_sec };
+    test_rdata_ctx_t ctx = { .row_count = 3, .table_name = "table1",
+        .timestamp = time.tv_sec, .date = { .tm_year = 95, .tm_mon = 7, .tm_mday = 15 } };
     rt_buffer_t *buffer = buffer_init();
     rdata_writer_t *writer = rdata_writer_init(&write_data, RDATA_WORKSPACE);
     rdata_column_t *col1 = rdata_add_column(writer, "column1", RDATA_TYPE_REAL);
     rdata_column_t *col2 = rdata_add_column(writer, "column2", RDATA_TYPE_STRING);
     rdata_column_t *col3 = rdata_add_column(writer, "column3", RDATA_TYPE_TIMESTAMP);
+    rdata_column_t *col4 = rdata_add_column(writer, "column4", RDATA_TYPE_DATE);
 
     rdata_begin_file(writer, buffer);
     rdata_begin_table(writer, ctx.table_name);
@@ -145,6 +162,12 @@ int main(int argc, char *argv[]) {
     rdata_append_timestamp_value(writer, ctx.timestamp);
     rdata_append_timestamp_value(writer, ctx.timestamp);
     rdata_end_column(writer, col3);
+
+    rdata_begin_column(writer, col4, ctx.row_count);
+    rdata_append_date_value(writer, &ctx.date);
+    rdata_append_date_value(writer, &ctx.date);
+    rdata_append_date_value(writer, &ctx.date);
+    rdata_end_column(writer, col4);
 
     rdata_end_table(writer, ctx.row_count, "My data set");
     rdata_end_file(writer);
