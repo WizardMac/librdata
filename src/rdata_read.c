@@ -56,7 +56,7 @@ typedef struct rdata_ctx_s {
     rdata_table_handler          table_handler;
     rdata_column_handler         column_handler;
     rdata_column_name_handler    column_name_handler;
-	rdata_column_name_handler    row_name_handler;
+    rdata_column_name_handler    row_name_handler;
     rdata_text_value_handler     text_value_handler;
     rdata_text_value_handler     value_label_handler;
     rdata_error_handler       error_handler;
@@ -659,7 +659,7 @@ rdata_error_t rdata_parse(rdata_parser_t *parser, const char *filename, void *us
     ctx->table_handler = parser->table_handler;
     ctx->column_handler = parser->column_handler;
     ctx->column_name_handler = parser->column_name_handler;
-	ctx->row_name_handler = parser->row_name_handler;
+    ctx->row_name_handler = parser->row_name_handler;
     ctx->text_value_handler = parser->text_value_handler;
     ctx->value_label_handler = parser->value_label_handler;
     ctx->error_handler = parser->error_handler;
@@ -971,8 +971,8 @@ static int handle_data_frame_attribute(char *key, rdata_sexptype_info_t val_info
     if (strcmp(key, "names") == 0 && val_info.header.type == RDATA_SEXPTYPE_CHARACTER_VECTOR) {
         retval = read_string_vector(val_info.header.attributes, ctx->column_name_handler, ctx->user_ctx, ctx);
     } else if (strcmp(key, "row.names") == 0 && val_info.header.type == RDATA_SEXPTYPE_CHARACTER_VECTOR) {
-		retval = read_string_vector(val_info.header.attributes, ctx->row_name_handler, ctx->user_ctx, ctx);
-	} else if (strcmp(key, "label.table") == 0) {
+        retval = read_string_vector(val_info.header.attributes, ctx->row_name_handler, ctx->user_ctx, ctx);
+    } else if (strcmp(key, "label.table") == 0) {
         retval = recursive_discard(val_info.header, ctx);
     } else {
         retval = recursive_discard(val_info.header, ctx);

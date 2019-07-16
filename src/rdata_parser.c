@@ -34,8 +34,8 @@ rdata_error_t rdata_set_column_name_handler(rdata_parser_t *parser, rdata_column
 }
 
 rdata_error_t rdata_set_row_name_handler(rdata_parser_t *parser, rdata_column_name_handler row_name_handler) {
-	parser->row_name_handler = row_name_handler;
-	return RDATA_OK;
+    parser->row_name_handler = row_name_handler;
+    return RDATA_OK;
 }
 
 rdata_error_t rdata_set_text_value_handler(rdata_parser_t *parser, rdata_text_value_handler text_value_handler) {

@@ -1,9 +1,3 @@
-#ifndef INCLUDE_RDATA_H
-#define INCLUDE_RDATA_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <stdint.h>
 #include <sys/types.h>
@@ -86,7 +80,7 @@ typedef struct rdata_parser_s {
     rdata_table_handler         table_handler;
     rdata_column_handler        column_handler;
     rdata_column_name_handler   column_name_handler;
-	rdata_column_name_handler   row_name_handler;
+    rdata_column_name_handler   row_name_handler;
     rdata_text_value_handler    text_value_handler;
     rdata_text_value_handler    value_label_handler;
     rdata_error_handler         error_handler;
@@ -168,8 +162,3 @@ rdata_error_t rdata_end_column(rdata_writer_t *writer, rdata_column_t *column);
 rdata_error_t rdata_end_table(rdata_writer_t *writer, int32_t row_count, const char *datalabel);
 rdata_error_t rdata_end_file(rdata_writer_t *writer);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
