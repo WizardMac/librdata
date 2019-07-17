@@ -60,6 +60,8 @@ typedef struct rdata_ctx_s {
     rdata_column_name_handler    row_name_handler;
     rdata_text_value_handler     text_value_handler;
     rdata_text_value_handler     value_label_handler;
+    rdata_column_handler         dim_handler;
+    rdata_text_value_handler     dim_name_handler;
     rdata_error_handler       error_handler;
     void                        *user_ctx;
 #if HAVE_BZIP2
@@ -666,6 +668,8 @@ rdata_error_t rdata_parse(rdata_parser_t *parser, const char *filename, void *us
     ctx->row_name_handler = parser->row_name_handler;
     ctx->text_value_handler = parser->text_value_handler;
     ctx->value_label_handler = parser->value_label_handler;
+    ctx->dim_handler = parser->dim_handler;
+    ctx->dim_name_handler = parser->dim_name_handler;
     ctx->error_handler = parser->error_handler;
 
     ctx->is_dim = false;
@@ -1050,9 +1054,8 @@ static rdata_error_t read_generic_list(int attributes, rdata_ctx_t *ctx) {
             if ((retval = read_length(&vec_length, ctx)) != RDATA_OK)
                 goto cleanup;
             if (ctx->is_dimnames) {
-                ctx->is_dimnames = false;
                 retval = read_string_vector_n(sexptype_info.header.attributes, vec_length,
-                    ctx->text_value_handler, ctx->user_ctx, ctx);
+                    ctx->dim_name_handler, ctx->user_ctx, ctx);
             } else {
                 if (ctx->column_handler) {
                     if (ctx->column_handler(NULL, RDATA_TYPE_STRING, NULL, vec_length, ctx->user_ctx)) {
@@ -1076,7 +1079,10 @@ static rdata_error_t read_generic_list(int attributes, rdata_ctx_t *ctx) {
     }
     
 cleanup:
-    
+
+    if (ctx->is_dimnames)
+        ctx->is_dimnames = false;
+
     return retval;
 }
 
@@ -1268,8 +1274,8 @@ static rdata_error_t read_value_vector(rdata_sexptype_header_t header, const cha
     
     if (ctx->is_dim) {
         ctx->is_dim = false;
-        if (ctx->column_handler) {
-            if (ctx->column_handler(name, output_data_type, vals, length, ctx->user_ctx)) {
+        if (ctx->dim_handler) {
+            if (ctx->dim_handler(name, output_data_type, vals, length, ctx->user_ctx)) {
                 retval = RDATA_ERROR_USER_ABORT;
                 goto cleanup;
             }
