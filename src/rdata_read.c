@@ -11,6 +11,7 @@
 #include <limits.h>
 #include <iconv.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #if HAVE_BZIP2
 #include <bzlib.h>
@@ -81,6 +82,9 @@ typedef struct rdata_ctx_s {
     unsigned int                 column_class;
 
     iconv_t                      converter;
+
+    bool                        is_dim;
+    bool                        is_dimnames;
 } rdata_ctx_t;
 
 static int atom_table_add(rdata_atom_table_t *table, char *key);
@@ -663,6 +667,9 @@ rdata_error_t rdata_parse(rdata_parser_t *parser, const char *filename, void *us
     ctx->text_value_handler = parser->text_value_handler;
     ctx->value_label_handler = parser->value_label_handler;
     ctx->error_handler = parser->error_handler;
+
+    ctx->is_dim = false;
+    ctx->is_dimnames = false;
     
     if ((retval = init_stream(ctx)) != RDATA_OK) {
         goto cleanup;
@@ -916,6 +923,12 @@ static int handle_vector_attribute(char *key, rdata_sexptype_info_t val_info, rd
     } else if (strcmp(key, "class") == 0) {
         ctx->column_class = 0;
         retval = read_string_vector(val_info.header.attributes, &handle_class_name, &ctx->column_class, ctx);
+    } else if (strcmp(key, "dim") == 0) {
+        ctx->is_dim = true;
+        retval = read_value_vector(val_info.header, key, ctx);
+    } else if (strcmp(key, "dimnames") == 0) {
+        ctx->is_dimnames = true;
+        retval = read_generic_list(val_info.header.attributes, ctx);
     } else {
         retval = recursive_discard(val_info.header, ctx);
     }
@@ -1036,14 +1049,20 @@ static rdata_error_t read_generic_list(int attributes, rdata_ctx_t *ctx) {
             
             if ((retval = read_length(&vec_length, ctx)) != RDATA_OK)
                 goto cleanup;
-            if (ctx->column_handler) {
-                if (ctx->column_handler(NULL, RDATA_TYPE_STRING, NULL, vec_length, ctx->user_ctx)) {
-                    retval = RDATA_ERROR_USER_ABORT;
-                    goto cleanup;
-                }
-            }
-            retval = read_string_vector_n(sexptype_info.header.attributes, vec_length,
+            if (ctx->is_dimnames) {
+                ctx->is_dimnames = false;
+                retval = read_string_vector_n(sexptype_info.header.attributes, vec_length,
                     ctx->text_value_handler, ctx->user_ctx, ctx);
+            } else {
+                if (ctx->column_handler) {
+                    if (ctx->column_handler(NULL, RDATA_TYPE_STRING, NULL, vec_length, ctx->user_ctx)) {
+                        retval = RDATA_ERROR_USER_ABORT;
+                        goto cleanup;
+                    }
+                }
+                retval = read_string_vector_n(sexptype_info.header.attributes, vec_length,
+                    ctx->text_value_handler, ctx->user_ctx, ctx);
+            }
         } else {
             retval = read_value_vector(sexptype_info.header, NULL, ctx);
         }
@@ -1247,12 +1266,23 @@ static rdata_error_t read_value_vector(rdata_sexptype_header_t header, const cha
     if (ctx->column_class == RDATA_CLASS_DATE)
         output_data_type = RDATA_TYPE_DATE;
     
-    if (ctx->column_handler) {
-        if (ctx->column_handler(name, output_data_type, vals, length, ctx->user_ctx)) {
-            retval = RDATA_ERROR_USER_ABORT;
-            goto cleanup;
+    if (ctx->is_dim) {
+        ctx->is_dim = false;
+        if (ctx->column_handler) {
+            if (ctx->column_handler(name, output_data_type, vals, length, ctx->user_ctx)) {
+                retval = RDATA_ERROR_USER_ABORT;
+                goto cleanup;
+            }
+        }
+    } else {
+        if (ctx->column_handler) {
+            if (ctx->column_handler(name, output_data_type, vals, length, ctx->user_ctx)) {
+                retval = RDATA_ERROR_USER_ABORT;
+                goto cleanup;
+            }
         }
     }
+    
 
 cleanup:
     if (vals)
