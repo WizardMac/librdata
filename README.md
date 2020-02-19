@@ -20,6 +20,9 @@ make
 make install
 ```
 
+If you're on Mac and see errors about `AM_ICONV` when you run `./autogen.sh`,
+you'll need to install [gettext](https://www.gnu.org/software/gettext/).
+
 ## Language bindings
 
 * Python: [pyreadr](https://github.com/ofajardo/pyreadr)
