@@ -848,6 +848,14 @@ static rdata_error_t read_sexptype_header(rdata_sexptype_info_t *header_info, rd
     memcpy(&header, &sexptype, sizeof(sexptype));
     uint32_t attributes = 0, tag = 0, ref = 0;
 
+    if (header.type == RDATA_SEXPTYPE_PAIRLIST_ATTR) {
+        header.attributes = 1;
+        header.type = RDATA_SEXPTYPE_PAIRLIST;
+    }
+    if (header.type == RDATA_SEXPTYPE_LANGUAGE_OBJECT_ATTR) {
+        header.attributes = 1;
+        header.type = RDATA_SEXPTYPE_LANGUAGE_OBJECT;
+    }
     if (header.type == RDATA_SEXPTYPE_PAIRLIST) {
         if (header.attributes) {
             if (read_st(ctx, &attributes, sizeof(attributes)) != sizeof(attributes)) {
