@@ -1258,7 +1258,7 @@ static rdata_error_t read_altrep_vector(const char *name, rdata_ctx_t *ctx) {
             snprintf(error_buf, sizeof(error_buf), "Unrecognized ALTREP class: %s\n", class);
             ctx->error_handler(error_buf, ctx->user_ctx);
         }
-        retval = RDATA_ERROR_PARSE;
+        retval = RDATA_ERROR_UNSUPPORTED_STORAGE_CLASS;
     }
 cleanup:
     return retval;
@@ -1761,7 +1761,12 @@ static rdata_error_t recursive_discard(rdata_sexptype_header_t sexptype_header, 
             }
             break;
         default:
-            return RDATA_ERROR_READ;
+            if (ctx->error_handler) {
+                char error_buf[1024];
+                snprintf(error_buf, sizeof(error_buf), "Unhandled S-Expression: %d", sexptype_header.type);
+                ctx->error_handler(error_buf, ctx->user_ctx);
+            }
+            return RDATA_ERROR_UNSUPPORTED_S_EXPRESSION;
     }
 cleanup:
     
