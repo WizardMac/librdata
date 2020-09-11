@@ -895,6 +895,9 @@ static rdata_error_t read_sexptype_header(rdata_sexptype_info_t *header_info, rd
             ref = (tag >> 8);
         }
     }
+    if (header.type == RDATA_PSEUDO_SXP_REF) {
+        ref = (sexptype >> 8);
+    }
     
     header_info->header = header;
     header_info->attributes = attributes;
@@ -1165,21 +1168,29 @@ static rdata_error_t read_generic_list(int attributes, rdata_ctx_t *ctx) {
                 goto cleanup;
             }
             /* class name */
-            if ((retval = read_sexptype_header(&sexptype_info, ctx)) != RDATA_OK)
-                goto cleanup;
-            if (sexptype_info.header.type != RDATA_SEXPTYPE_SYMBOL) {
-                retval = RDATA_ERROR_PARSE;
-                goto cleanup;
-            }
-            if ((retval = read_sexptype_header(&sexptype_info, ctx)) != RDATA_OK)
-                goto cleanup;
-            if (sexptype_info.header.type != RDATA_SEXPTYPE_CHARACTER_STRING) {
-                retval = RDATA_ERROR_PARSE;
-                goto cleanup;
-            }
             char *class = NULL;
-            if ((retval = read_character_string(&class, ctx)) != RDATA_OK)
+            if ((retval = read_sexptype_header(&sexptype_info, ctx)) != RDATA_OK)
                 goto cleanup;
+            if (sexptype_info.header.type == RDATA_SEXPTYPE_SYMBOL) {
+                if ((retval = read_sexptype_header(&sexptype_info, ctx)) != RDATA_OK)
+                    goto cleanup;
+                if (sexptype_info.header.type != RDATA_SEXPTYPE_CHARACTER_STRING) {
+                    retval = RDATA_ERROR_PARSE;
+                    goto cleanup;
+                }
+                if ((retval = read_character_string(&class, ctx)) != RDATA_OK)
+                    goto cleanup;
+
+                atom_table_add(ctx->atom_table, class);
+            } else if (sexptype_info.header.type == RDATA_PSEUDO_SXP_REF) {
+                if ((class = atom_table_lookup(ctx->atom_table, sexptype_info.ref)) == NULL) {
+                    retval = RDATA_ERROR_PARSE;
+                    goto cleanup;
+                }
+            } else {
+                retval = RDATA_ERROR_PARSE;
+                goto cleanup;
+            }
 
             /* package and class ID */
             if ((retval = read_sexptype_header(&sexptype_info, ctx)) != RDATA_OK)
