@@ -1523,7 +1523,6 @@ static rdata_error_t read_value_vector_cb(rdata_sexptype_header_t header, const 
             goto cleanup;
         }
     }
-    
 
 cleanup:
     if (vals)
