@@ -951,7 +951,7 @@ static int handle_vector_attribute(char *key, rdata_sexptype_info_t val_info, rd
         ctx->column_class = 0;
         retval = read_string_vector(val_info.header.attributes, &handle_class_name, &ctx->column_class, ctx);
     } else if (strcmp(key, "dim") == 0) {
-        retval = read_value_vector_cb(val_info.header, key, NULL, ctx->user_ctx, ctx);
+        retval = read_value_vector_cb(val_info.header, key, ctx->dim_handler, ctx->user_ctx, ctx);
     } else if (strcmp(key, "dimnames") == 0) {
         ctx->is_dimnames = true;
         retval = read_generic_list(val_info.header.attributes, ctx);
@@ -1521,13 +1521,6 @@ static rdata_error_t read_value_vector_cb(rdata_sexptype_header_t header, const 
         if (column_handler(name, output_data_type, vals, length, user_ctx)) {
             retval = RDATA_ERROR_USER_ABORT;
             goto cleanup;
-        }
-    } else {
-        if (ctx->dim_handler) {
-            if (ctx->dim_handler(name, output_data_type, vals, length, ctx->user_ctx)) {
-                retval = RDATA_ERROR_USER_ABORT;
-                goto cleanup;
-            }
         }
     }
     
