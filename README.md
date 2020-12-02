@@ -20,6 +20,9 @@ make
 make install
 ```
 
+If you're on Mac and see errors about `AM_ICONV` when you run `./autogen.sh`,
+you'll need to install [gettext](https://www.gnu.org/software/gettext/).
+
 ## Language bindings
 
 * Python: [pyreadr](https://github.com/ofajardo/pyreadr)
@@ -28,7 +31,7 @@ make install
 
 Example usage:
 
-```{C}
+```c
 #include "rdata.h"
 
 static int handle_table(const char *name, void *ctx) {
@@ -81,7 +84,7 @@ See [`rdata.h`](src/rdata.h) for the full API.
 
 Example usage:
 
-```{C}
+```c
 #include "rdata.h"
 
 static ssize_t write_data(const void *bytes, size_t len, void *ctx) {
