@@ -1311,6 +1311,8 @@ static rdata_error_t read_generic_list(int attributes, rdata_ctx_t *ctx) {
             }
         } else if (sexptype_info.header.type == RDATA_PSEUDO_SXP_ALTREP) {
             retval = read_altrep_vector(NULL, ctx);
+        } else if (sexptype_info.header.type == RDATA_PSEUDO_SXP_NIL) {
+            /* do nothing */
         } else {
             retval = read_value_vector(sexptype_info.header, NULL, ctx);
         }
