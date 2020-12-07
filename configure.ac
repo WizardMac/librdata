@@ -7,6 +7,7 @@ AC_SUBST([LIBRDATA_VERSION], [0.1.0-prerelease])
 LT_INIT([disable-static])
 
 AC_PROG_CC
+AC_PROG_CC_STDC
 
 AC_ARG_ENABLE([code-coverage], AS_HELP_STRING([--enable-code-coverage], [Enable code coverage profiling]), [code_coverage=yes], [code_coverage=no])
 AC_ARG_ENABLE([sanitizers], AS_HELP_STRING([--enable-sanitizers], [Enable address sanitizing]),
