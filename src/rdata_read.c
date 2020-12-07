@@ -1482,27 +1482,29 @@ static rdata_error_t read_value_vector_cb(rdata_sexptype_header_t header, const 
 
     buf_len = length * input_elem_size;
     
-    vals = rdata_malloc(buf_len);
-    if (vals == NULL) {
-        retval = RDATA_ERROR_MALLOC;
-        goto cleanup;
-    }
-    
-    if (read_st(ctx, vals, buf_len) != buf_len) {
-        retval = RDATA_ERROR_READ;
-        goto cleanup;
-    }
-    
-    if (ctx->machine_needs_byteswap) {
-        if (input_elem_size == sizeof(double)) {
-            double *d_vals = (double *)vals;
-            for (i=0; i<buf_len/sizeof(double); i++) {
-                d_vals[i] = byteswap_double(d_vals[i]);
-            }
-        } else {
-            uint32_t *i_vals = (uint32_t *)vals;
-            for (i=0; i<buf_len/sizeof(uint32_t); i++) {
-                i_vals[i] = byteswap4(i_vals[i]);
+    if (buf_len) {
+        vals = rdata_malloc(buf_len);
+        if (vals == NULL) {
+            retval = RDATA_ERROR_MALLOC;
+            goto cleanup;
+        }
+        
+        if (read_st(ctx, vals, buf_len) != buf_len) {
+            retval = RDATA_ERROR_READ;
+            goto cleanup;
+        }
+        
+        if (ctx->machine_needs_byteswap) {
+            if (input_elem_size == sizeof(double)) {
+                double *d_vals = (double *)vals;
+                for (i=0; i<buf_len/sizeof(double); i++) {
+                    d_vals[i] = byteswap_double(d_vals[i]);
+                }
+            } else {
+                uint32_t *i_vals = (uint32_t *)vals;
+                for (i=0; i<buf_len/sizeof(uint32_t); i++) {
+                    i_vals[i] = byteswap4(i_vals[i]);
+                }
             }
         }
     }
