@@ -82,7 +82,8 @@ typedef struct rdata_ctx_s {
 
     iconv_t                      converter;
 
-    bool                        is_dimnames;
+    int32_t                      dims[3];
+    bool                         is_dimnames;
 } rdata_ctx_t;
 
 static int atom_table_add(rdata_atom_table_t *table, char *key);
@@ -951,13 +952,37 @@ static int handle_vector_attribute(char *key, rdata_sexptype_info_t val_info, rd
         ctx->column_class = 0;
         retval = read_string_vector(val_info.header.attributes, &handle_class_name, &ctx->column_class, ctx);
     } else if (strcmp(key, "dim") == 0) {
-        retval = read_value_vector_cb(val_info.header, key, ctx->dim_handler, ctx->user_ctx, ctx);
+        if (val_info.header.type == RDATA_SEXPTYPE_INTEGER_VECTOR) {
+            int32_t length;
+            if ((retval = read_length(&length, ctx)) != RDATA_OK)
+                goto cleanup;
+
+            if (length < sizeof(ctx->dims)/sizeof(ctx->dims[0])) {
+                int buf_len = length * sizeof(int32_t);
+                if (read_st(ctx, ctx->dims, buf_len) != buf_len) {
+                    retval = RDATA_ERROR_READ;
+                    goto cleanup;
+                }
+                if (ctx->machine_needs_byteswap) {
+                    int i;
+                    for (i=0; i<length; i++) {
+                        ctx->dims[i] = byteswap4(ctx->dims[i]);
+                    }
+                }
+                if (ctx->dim_handler) {
+                    if (ctx->dim_handler(key, RDATA_SEXPTYPE_INTEGER_VECTOR, ctx->dims, length, ctx->user_ctx)) {
+                        retval = RDATA_ERROR_USER_ABORT;
+                    }
+                }
+            }
+        }
     } else if (strcmp(key, "dimnames") == 0) {
         ctx->is_dimnames = true;
         retval = read_generic_list(val_info.header.attributes, ctx);
     } else {
         retval = recursive_discard(val_info.header, ctx);
     }
+cleanup:
     return retval;
 }
 
@@ -1312,7 +1337,12 @@ static rdata_error_t read_generic_list(int attributes, rdata_ctx_t *ctx) {
         } else if (sexptype_info.header.type == RDATA_PSEUDO_SXP_ALTREP) {
             retval = read_altrep_vector(NULL, ctx);
         } else if (sexptype_info.header.type == RDATA_PSEUDO_SXP_NIL) {
-            /* do nothing */
+            if (ctx->is_dimnames && ctx->dim_name_handler && i < sizeof(ctx->dims)/sizeof(ctx->dims[0])) {
+                int j;
+                for (j=0; j<ctx->dims[i]; j++) {
+                    ctx->dim_name_handler(NULL, j, ctx->user_ctx);
+                }
+            }
         } else {
             retval = read_value_vector(sexptype_info.header, NULL, ctx);
         }
