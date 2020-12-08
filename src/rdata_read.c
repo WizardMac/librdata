@@ -36,6 +36,7 @@
 #define RDATA_CLASS_DATE    0x02
 
 #define STREAM_BUFFER_SIZE   65536
+#define MAX_ARRAY_DIMENSIONS     3
 
 /* ICONV_CONST defined by autotools during configure according
  * to the current platform. Some people copy-paste the source code, so
@@ -82,7 +83,7 @@ typedef struct rdata_ctx_s {
 
     iconv_t                      converter;
 
-    int32_t                      dims[3];
+    int32_t                      dims[MAX_ARRAY_DIMENSIONS];
     bool                         is_dimnames;
 } rdata_ctx_t;
 
@@ -957,7 +958,7 @@ static int handle_vector_attribute(char *key, rdata_sexptype_info_t val_info, rd
             if ((retval = read_length(&length, ctx)) != RDATA_OK)
                 goto cleanup;
 
-            if (length < sizeof(ctx->dims)/sizeof(ctx->dims[0])) {
+            if (length <= sizeof(ctx->dims)/sizeof(ctx->dims[0])) {
                 int buf_len = length * sizeof(int32_t);
                 if (read_st(ctx, ctx->dims, buf_len) != buf_len) {
                     retval = RDATA_ERROR_READ;
