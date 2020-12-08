@@ -971,7 +971,7 @@ static int handle_vector_attribute(char *key, rdata_sexptype_info_t val_info, rd
                     }
                 }
                 if (ctx->dim_handler) {
-                    if (ctx->dim_handler(key, RDATA_SEXPTYPE_INTEGER_VECTOR, ctx->dims, length, ctx->user_ctx)) {
+                    if (ctx->dim_handler(key, RDATA_TYPE_INT32, ctx->dims, length, ctx->user_ctx)) {
                         retval = RDATA_ERROR_USER_ABORT;
                     }
                 }
