@@ -21,7 +21,7 @@ rdata_writer_t *rdata_writer_init(rdata_data_writer write_callback, rdata_file_f
     rdata_writer_t *writer = calloc(1, sizeof(rdata_writer_t));
     writer->file_format = format;
     writer->bswap = machine_is_little_endian();
-    writer->atom_table = ck_hash_table_init(100);
+    writer->atom_table = ck_hash_table_init(100, 24);
     writer->data_writer = write_callback;
 
     writer->columns_capacity = INITIAL_COLUMNS_CAPACITY;
