@@ -14,6 +14,8 @@ jobs:
         run: autoreconf -i -f
       - name: Configure
         run: ./configure
+        env:
+          CC: ${{ matrix.compiler }}
       - name: Make
         run: make
       - name: Tests
@@ -31,6 +33,8 @@ jobs:
         run: autoreconf -i -f
       - name: Configure
         run: ./configure
+        env:
+          CC: ${{ matrix.compiler }}
       - name: Make
         run: make
       - name: Tests
