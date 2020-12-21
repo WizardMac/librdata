@@ -7,6 +7,8 @@ jobs:
       matrix:
         compiler: [ clang, gcc ]
     steps:
+      - name: Install packages
+        run: sudo apt install gettext
       - uses: actions/checkout@v2
       - name: Autoconf
         run: autoreconf -i -f
