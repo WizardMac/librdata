@@ -1,6 +1,5 @@
 # librdata - Read and write R data frames from C
 [![Build Status](https://github.com/WizardMac/librdata/workflows/build/badge.svg)](https://github.com/WizardMac/librdata/actions)
-[![Build Status](https://travis-ci.org/WizardMac/librdata.svg?branch=master)](https://travis-ci.org/WizardMac/librdata)
 [![Build status](https://ci.appveyor.com/api/projects/status/xrao0cdroh5xn950?svg=true)](https://ci.appveyor.com/project/evanmiller/librdata)
 
 Originally part of [ReadStat](https://github.com/WizardMac/ReadStat), librdata
