@@ -39,3 +39,17 @@ jobs:
         run: make
       - name: Tests
         run: make check
+  windows:
+    runs-on: windows-latest
+    env:
+      MSYSTEM: MINGW64
+    steps:
+      - uses: actions/checkout@v2
+      - name: Autoconf
+        run: C:\msys64\usr\bin\bash -c -l 'cd "$GITHUB_WORKSPACE" && autoreconf -i -f'
+      - name: Configure
+        run: C:\msys64\usr\bin\bash -c -l 'cd "$GITHUB_WORKSPACE" && ./configure'
+      - name: Make
+        run: C:\msys64\usr\bin\bash -c -l 'cd "$GITHUB_WORKSPACE" && make'
+      - name: Test
+        run: C:\msys64\usr\bin\bash -c -l 'cd "$GITHUB_WORKSPACE" && make check'
