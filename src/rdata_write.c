@@ -519,7 +519,7 @@ rdata_error_t rdata_end_table(rdata_writer_t *writer, int32_t row_count, const c
 
         char buf[128];
         for (i=0; i<row_count; i++) {
-            sprintf(buf, "%d", i+1);
+            snprintf(buf, sizeof(buf), "%d", i+1);
             retval = rdata_write_string(writer, buf);
             if (retval != RDATA_OK)
                 goto cleanup;
