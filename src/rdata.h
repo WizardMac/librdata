@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum rdata_type_e {
     RDATA_TYPE_STRING,
     RDATA_TYPE_INT32,
@@ -168,3 +172,6 @@ rdata_error_t rdata_end_column(rdata_writer_t *writer, rdata_column_t *column);
 rdata_error_t rdata_end_table(rdata_writer_t *writer, int32_t row_count, const char *datalabel);
 rdata_error_t rdata_end_file(rdata_writer_t *writer);
 
+#ifdef __cplusplus
+} // extern c block
+#endif
