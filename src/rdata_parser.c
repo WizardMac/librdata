@@ -63,6 +63,11 @@ rdata_error_t rdata_set_error_handler(rdata_parser_t *parser, rdata_error_handle
     return RDATA_OK;
 }
 
+rdata_error_t rdata_set_header_handler(rdata_parser_t *parser, rdata_header_handler header_handler) {
+    parser->header_handler = header_handler;
+    return RDATA_OK;
+}
+
 rdata_error_t rdata_set_open_handler(rdata_parser_t *parser, rdata_open_handler open_handler) {
     parser->io->open = open_handler;
     return RDATA_OK;

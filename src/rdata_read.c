@@ -60,7 +60,8 @@ typedef struct rdata_ctx_s {
     rdata_text_value_handler     value_label_handler;
     rdata_column_handler         dim_handler;
     rdata_text_value_handler     dim_name_handler;
-    rdata_error_handler       error_handler;
+    rdata_error_handler          error_handler;
+    rdata_header_handler         header_handler;
     void                        *user_ctx;
 #if HAVE_BZIP2
     bz_stream                   *bz_strm;
@@ -656,9 +657,10 @@ void free_rdata_ctx(rdata_ctx_t *ctx) {
 rdata_error_t rdata_parse(rdata_parser_t *parser, const char *filename, void *user_ctx) {
     int is_rdata = 0;
     rdata_error_t retval = RDATA_OK;
-    rdata_v2_header_t v2_header;
+    rdata_header_t v2_header;
     rdata_ctx_t *ctx = rdata_ctx_init(parser->io, filename);
     char *encoding = NULL;
+    rdata_compression_t compression = RDATA_COMPRESSION_NONE;
 
     if (ctx == NULL) {
         retval = RDATA_ERROR_OPEN;
@@ -675,6 +677,7 @@ rdata_error_t rdata_parse(rdata_parser_t *parser, const char *filename, void *us
     ctx->dim_handler = parser->dim_handler;
     ctx->dim_name_handler = parser->dim_name_handler;
     ctx->error_handler = parser->error_handler;
+    ctx->header_handler = parser->header_handler;
 
     ctx->is_dimnames = false;
     
@@ -682,8 +685,8 @@ rdata_error_t rdata_parse(rdata_parser_t *parser, const char *filename, void *us
         goto cleanup;
     }
 
-    char header_line[5];
-    if (read_st(ctx, &header_line, sizeof(header_line)) != sizeof(header_line)) {
+    char header_line[RDATA_HEADER_LENGTH] = "";
+    if (read_st(ctx, &header_line, RDATA_HEADER_LENGTH) != RDATA_HEADER_LENGTH) {
         retval = RDATA_ERROR_READ;
         goto cleanup;
     }
@@ -702,6 +705,33 @@ rdata_error_t rdata_parse(rdata_parser_t *parser, const char *filename, void *us
         v2_header.format_version = byteswap4(v2_header.format_version);
         v2_header.writer_version = byteswap4(v2_header.writer_version);
         v2_header.reader_version = byteswap4(v2_header.reader_version);
+    }
+
+    if (ctx->header_handler) {
+#if HAVE_BZIP2
+        if (ctx->bz_strm) {
+            compression = RDATA_COMPRESSION_BZIP2;
+        }
+#endif
+#if HAVE_APPLE_COMPRESSION
+        if (ctx->compression_strm) {
+            compression = RDATA_COMPRESSION_LZMA;
+        }
+#endif
+#if HAVE_ZLIB
+        if (ctx->z_strm) {
+            compression = RDATA_COMPRESSION_GZIP;
+        }
+#endif
+#if HAVE_LZMA
+        if (ctx->lzma_strm) {
+            compression = RDATA_COMPRESSION_LZMA;
+        }
+#endif
+        if(ctx->header_handler(compression, header_line, &v2_header, ctx->user_ctx)) {
+            retval = RDATA_ERROR_USER_ABORT;
+            goto cleanup;
+        }
     }
 
     if (is_rdata && v2_header.format_version != header_line[3] - '0') {

@@ -42,6 +42,22 @@ typedef enum rdata_file_format_e {
     RDATA_SINGLE_OBJECT
 } rdata_file_format_t;
 
+typedef enum rdata_compression_e {
+	RDATA_COMPRESSION_NONE,
+	RDATA_COMPRESSION_GZIP,
+	RDATA_COMPRESSION_BZIP2,
+	RDATA_COMPRESSION_LZMA
+} rdata_compression_t;
+
+#pragma pack(push, 1)
+typedef struct rdata_header_s {
+  char       header[2];
+  uint32_t   format_version;
+  uint32_t   writer_version;
+  uint32_t   reader_version;
+} rdata_header_t;
+#pragma pack(pop)
+
 const char *rdata_error_message(rdata_error_t error_code);
 
 typedef int (*rdata_column_handler)(const char *name, rdata_type_t type,
@@ -51,6 +67,15 @@ typedef int (*rdata_text_value_handler)(const char *value, int index, void *ctx)
 typedef int (*rdata_column_name_handler)(const char *value, int index, void *ctx);
 typedef void (*rdata_error_handler)(const char *error_message, void *ctx);
 typedef int (*rdata_progress_handler)(double progress, void *ctx);
+
+/* Callback type for passing meta-information from file header to the caller. Arguments:
+ * - compression - compression algorithm used on the file,
+ * - header_line - first 5 bytes of the file containing information about file type (RData vs RDS, ascii vs binary, etc.),
+ * - header - structure with information about file version, writer R version and minimal R version required to read the file back,
+ * - ctx - user context, same as in all other handlers
+ * header_line and header must not be free'd by the user.
+ */
+typedef int (*rdata_header_handler)(rdata_compression_t compression, const char *header_line, const rdata_header_t* header, void *ctx);
 
 #if defined(_MSC_VER)
 #include <BaseTsd.h>
@@ -96,6 +121,7 @@ typedef struct rdata_parser_s {
     rdata_column_handler        dim_handler;
     rdata_text_value_handler    dim_name_handler;
     rdata_error_handler         error_handler;
+    rdata_header_handler        header_handler;
     rdata_io_t                 *io;
 } rdata_parser_t;
 
@@ -111,6 +137,7 @@ rdata_error_t rdata_set_value_label_handler(rdata_parser_t *parser, rdata_text_v
 rdata_error_t rdata_set_dim_handler(rdata_parser_t *parser, rdata_column_handler dim_handler);
 rdata_error_t rdata_set_dim_name_handler(rdata_parser_t *parser, rdata_text_value_handler dim_name_handler);
 rdata_error_t rdata_set_error_handler(rdata_parser_t *parser, rdata_error_handler error_handler);
+rdata_error_t rdata_set_header_handler(rdata_parser_t *parser, rdata_header_handler header_handler);
 rdata_error_t rdata_set_open_handler(rdata_parser_t *parser, rdata_open_handler open_handler);
 rdata_error_t rdata_set_close_handler(rdata_parser_t *parser, rdata_close_handler close_handler);
 rdata_error_t rdata_set_seek_handler(rdata_parser_t *parser, rdata_seek_handler seek_handler);
