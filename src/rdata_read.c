@@ -376,11 +376,13 @@ static ssize_t read_st_lzma(rdata_ctx_t *ctx, void *buffer, size_t len) {
 }
 #endif /* HAVE_LZMA */
 
-static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
-    ssize_t bytes_read = 0;
+/* Upper bound on a single request to a decompressor or read handler. zlib
+ * and bzip2 count output space in unsigned ints, and some platforms' read(2)
+ * reject sizes above INT_MAX, so larger reads are split up by read_st. */
+#define READ_ST_MAX_CHUNK (1 << 30)
 
-    if (len == 0)
-        return 0;
+static ssize_t read_st_chunk(rdata_ctx_t *ctx, void *buffer, size_t len) {
+    ssize_t bytes_read = 0;
 
 #if HAVE_BZIP2
     if (ctx->bz_strm) {
@@ -411,6 +413,26 @@ static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
     }
 
     return bytes_read;
+}
+
+static ssize_t read_st(rdata_ctx_t *ctx, void *buffer, size_t len) {
+    size_t total = 0;
+
+    while (total < len) {
+        size_t chunk = len - total;
+        if (chunk > READ_ST_MAX_CHUNK)
+            chunk = READ_ST_MAX_CHUNK;
+
+        ssize_t bytes_read = read_st_chunk(ctx, (char *)buffer + total, chunk);
+        if (bytes_read < 0)
+            return bytes_read;
+
+        total += bytes_read;
+        if ((size_t)bytes_read < chunk)
+            break;
+    }
+
+    return total;
 }
 
 static int lseek_st(rdata_ctx_t *ctx, size_t len) {
