@@ -1,7 +1,13 @@
 
 #include <fcntl.h>
 #include <stdlib.h>
-#include <unistd.h>
+
+#ifdef _WIN32
+    #include <io.h>
+    #include <process.h>
+#else
+    #include <unistd.h>
+#endif
 
 #include "rdata.h"
 #include "rdata_io_unistd.h"
@@ -12,10 +18,6 @@
 #define UNISTD_OPEN_OPTIONS O_RDONLY | O_LARGEFILE
 #else
 #define UNISTD_OPEN_OPTIONS O_RDONLY
-#endif
-
-#if defined _WIN32 || defined _AIX
-#define lseek lseek64
 #endif
 
 
