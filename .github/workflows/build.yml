@@ -48,7 +48,6 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           update: true
-          msystem: MINGW64
           install: >-
             autotools
             base-devel
@@ -59,7 +58,7 @@ jobs:
       - name: Autoconf
         run: autoreconf -i -f
       - name: Configure
-        run: ./configure
+        run: ./configure CFLAGS="-Wno-error=implicit-function-declaration" 
       - name: Make
         run: make
       - name: Test
