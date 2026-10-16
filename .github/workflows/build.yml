@@ -48,8 +48,9 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           update: true
+          msystem: MINGW64
           install: >-
-            libtool
+            autotools
             base-devel
             gcc
             gettext
