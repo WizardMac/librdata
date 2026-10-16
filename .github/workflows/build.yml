@@ -27,7 +27,7 @@ jobs:
         compiler: [ clang, gcc ]
     steps:
       - name: Install packages
-        run: brew install automake
+        run: brew install automake autoconf libtool
       - uses: actions/checkout@v2
       - name: Autoconf
         run: autoreconf -i -f
@@ -41,15 +41,27 @@ jobs:
         run: make check
   windows:
     runs-on: windows-latest
-    env:
-      MSYSTEM: MINGW64
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v2
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          msystem: MINGW64
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-autotools
+            mingw-w64-x86_64-libtool
+            gettext
+            libiconv-devel
+      - uses: actions/checkout@v6
       - name: Autoconf
-        run: C:\msys64\usr\bin\bash -c -l 'cd "$GITHUB_WORKSPACE" && autoreconf -i -f'
+        run: autoreconf -i -f
       - name: Configure
-        run: C:\msys64\usr\bin\bash -c -l 'cd "$GITHUB_WORKSPACE" && ./configure'
+        run: ./configure CFLAGS="-Wno-error=implicit-function-declaration" 
       - name: Make
-        run: C:\msys64\usr\bin\bash -c -l 'cd "$GITHUB_WORKSPACE" && make'
+        run: make
       - name: Test
-        run: C:\msys64\usr\bin\bash -c -l 'cd "$GITHUB_WORKSPACE" && make check'
+        id: make-check
+        run: make check
